@@ -180,7 +180,7 @@ export default function App() {
       const w = window.innerWidth; const h = window.innerHeight;
       const cx = w / 2; const cy = h / 2; const scale = scaleRef.current;
       const eR = w < 768 ? 0.65 : 0.4;
-      shootingStarsRef.current.forEach((star) => { const d = Math.hypot(star.x - mx, star.y - my); if (d < 40 && star.slowing) { star.caught = true; collectStar(); } });
+      shootingStarsRef.current.forEach((star) => { const d = Math.hypot(star.x - mx, star.y - my); if (d < 50) { star.caught = true; collectStar(); } });
       const t = timeRef.current;
       PLANETS.forEach((planet) => {
         const angle = t * planet.speed; const orbit = planet.baseOrbit * scale;
@@ -297,27 +297,57 @@ export default function App() {
       shootingStarsRef.current = shootingStarsRef.current.filter((s) => {
         if (s.caught) return false;
         const dist = Math.hypot(s.x - mouse.x, s.y - mouse.y);
-        s.slowing = dist < 100; const sm = s.slowing ? Math.max(0.05, dist / 100) : 1;
-        s.x += s.vx * sm; s.y += s.vy * sm; s.life -= s.slowing ? 0.002 : 0.008;
+        s.slowing = dist < 140;
+
+        if (s.slowing) {
+          // Gravitational pull toward cursor (black hole effect)
+          const pullStrength = Math.max(0, 1 - dist / 140) * 1.5;
+          const angle = Math.atan2(mouse.y - s.y, mouse.x - s.x);
+          s.vx += Math.cos(angle) * pullStrength;
+          s.vy += Math.sin(angle) * pullStrength;
+          // Slow down
+          s.vx *= 0.95;
+          s.vy *= 0.95;
+        }
+
+        s.x += s.vx; s.y += s.vy;
+        s.life -= s.slowing ? 0.001 : 0.008;
         if (s.life <= 0 || s.x < -50 || s.x > w + 50 || s.y > h + 50) return false;
-        const tg = ctx.createLinearGradient(s.x - s.vx * 8, s.y - s.vy * 8, s.x, s.y);
-        tg.addColorStop(0, "transparent"); tg.addColorStop(1, `rgba(255,255,255,${s.life * 0.6})`);
-        ctx.beginPath(); ctx.moveTo(s.x - s.vx * 8, s.y - s.vy * 8); ctx.lineTo(s.x, s.y);
+
+        // Catch when very close
+        if (dist < 30) { s.caught = true; collectStar(); return false; }
+
+        // Trail
+        const trailLen = s.slowing ? 4 : 8;
+        const tg = ctx.createLinearGradient(s.x - s.vx * trailLen, s.y - s.vy * trailLen, s.x, s.y);
+        tg.addColorStop(0, "transparent"); tg.addColorStop(1, s.slowing ? `rgba(255,200,50,${s.life * 0.7})` : `rgba(255,255,255,${s.life * 0.6})`);
+        ctx.beginPath(); ctx.moveTo(s.x - s.vx * trailLen, s.y - s.vy * trailLen); ctx.lineTo(s.x, s.y);
         ctx.strokeStyle = tg; ctx.lineWidth = s.size; ctx.stroke();
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.size + (s.slowing ? 2 : 0), 0, Math.PI * 2);
+
+        // Star head — grows and glows golden when being pulled
+        const headSize = s.slowing ? s.size + 3 + (1 - dist / 140) * 3 : s.size;
+        if (s.slowing) {
+          // Golden glow halo
+          const halo = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, headSize * 3);
+          halo.addColorStop(0, `rgba(255,200,50,${s.life * 0.3})`); halo.addColorStop(1, "transparent");
+          ctx.fillStyle = halo; ctx.fillRect(s.x - headSize * 3, s.y - headSize * 3, headSize * 6, headSize * 6);
+        }
+        ctx.beginPath(); ctx.arc(s.x, s.y, headSize, 0, Math.PI * 2);
         ctx.fillStyle = s.slowing ? `rgba(255,215,0,${s.life})` : `rgba(255,255,255,${s.life})`; ctx.fill();
         return true;
       });
 
-      // ─── Cursor trail (soft purple nebula wake) ───
+      // ─── Black hole gravitational trail ───
       for (let i = cursorTrail.length - 1; i >= 0; i--) {
         const p = cursorTrail[i];
-        p.life -= 0.025;
+        p.life -= 0.022;
         if (p.life <= 0) { cursorTrail.splice(i, 1); continue; }
-        const radius = p.size * (1.5 - p.life * 0.5);
+        const radius = p.size * (2 - p.life * 0.8);
+        // Dark core with purple-orange accretion edge
         const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius);
-        grd.addColorStop(0, `rgba(147, 51, 234, ${p.life * 0.3})`);
-        grd.addColorStop(0.6, `rgba(124, 58, 237, ${p.life * 0.12})`);
+        grd.addColorStop(0, `rgba(0, 0, 0, ${p.life * 0.25})`);
+        grd.addColorStop(0.4, `rgba(80, 20, 120, ${p.life * 0.15})`);
+        grd.addColorStop(0.7, `rgba(147, 51, 234, ${p.life * 0.08})`);
         grd.addColorStop(1, "transparent");
         ctx.fillStyle = grd;
         ctx.fillRect(p.x - radius, p.y - radius, radius * 2, radius * 2);
@@ -344,14 +374,14 @@ export default function App() {
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: "#000", fontFamily: "Georgia, serif", cursor: "none" }}>
-      {/* Custom purple cursor */}
+      {/* Custom black hole cursor */}
       {!mobile && (
         <div id="shunya-cursor" style={{
           position: "fixed", pointerEvents: "none", zIndex: 9999,
-          width: 36, height: 36, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(192,132,252,0.8) 0%, rgba(147,51,234,0.35) 40%, rgba(124,58,237,0.1) 65%, transparent 80%)",
-          boxShadow: "0 0 20px rgba(147,51,234,0.5), 0 0 50px rgba(124,58,237,0.2)",
-          border: "1px solid rgba(192,132,252,0.3)",
+          width: 44, height: 44, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 25%, rgba(80,20,120,0.4) 45%, rgba(147,51,234,0.2) 60%, rgba(245,166,35,0.1) 75%, transparent 85%)",
+          boxShadow: "0 0 8px rgba(0,0,0,0.9), 0 0 20px rgba(80,20,120,0.4), 0 0 40px rgba(147,51,234,0.15), inset 0 0 10px rgba(0,0,0,1)",
+          border: "1.5px solid rgba(147,51,234,0.25)",
           transform: "translate(-50%, -50%)",
           left: 0, top: 0,
           willChange: "transform, left, top",
