@@ -147,62 +147,73 @@ export default function AuthPage({ onAuth, onSignupStart }) {
   return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Georgia', serif", position: "relative", overflow: "hidden" }}>
       {/* Deep space background */}
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 40%, rgba(15,8,40,0.6) 0%, rgba(5,2,20,0.4) 40%, #000 70%)" }} />
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.4), transparent), radial-gradient(1px 1px at 45% 65%, rgba(255,255,255,0.2), transparent), radial-gradient(1px 1px at 65% 15%, rgba(255,255,255,0.3), transparent), radial-gradient(1.5px 1.5px at 85% 45%, rgba(255,255,255,0.2), transparent), radial-gradient(1.5px 1.5px at 10% 80%, rgba(255,255,255,0.4), transparent), radial-gradient(1px 1px at 75% 85%, rgba(255,255,255,0.3), transparent), radial-gradient(0.8px 0.8px at 30% 40%, rgba(255,255,255,0.2), transparent), radial-gradient(1.2px 1.2px at 55% 90%, rgba(255,255,255,0.3), transparent)", backgroundSize: "250px 250px" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 40%, rgba(20,10,50,0.7) 0%, rgba(8,4,25,0.5) 35%, #000 65%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.5), transparent), radial-gradient(1px 1px at 45% 65%, rgba(255,255,255,0.3), transparent), radial-gradient(1.2px 1.2px at 65% 15%, rgba(255,255,255,0.4), transparent), radial-gradient(1.5px 1.5px at 85% 45%, rgba(255,255,255,0.3), transparent), radial-gradient(1.5px 1.5px at 10% 80%, rgba(255,255,255,0.5), transparent), radial-gradient(1px 1px at 75% 85%, rgba(255,255,255,0.4), transparent), radial-gradient(1px 1px at 30% 40%, rgba(255,255,255,0.3), transparent), radial-gradient(1.3px 1.3px at 55% 90%, rgba(255,255,255,0.4), transparent), radial-gradient(0.8px 0.8px at 92% 30%, rgba(255,255,255,0.3), transparent), radial-gradient(1px 1px at 22% 55%, rgba(255,255,255,0.2), transparent)", backgroundSize: "250px 250px" }} />
 
-      {/* Central sun glow behind the form */}
-      <div style={{ position: "absolute", width: mobile ? 280 : 400, height: mobile ? 280 : 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(245,166,35,0.08) 0%, rgba(245,166,35,0.03) 40%, transparent 70%)", filter: "blur(40px)", animation: "authPulse 4s ease-in-out infinite" }} />
+      {/* Central warm glow */}
+      <div style={{ position: "absolute", width: mobile ? 300 : 500, height: mobile ? 300 : 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(245,166,35,0.1) 0%, rgba(245,166,35,0.04) 30%, transparent 60%)", filter: "blur(50px)", animation: "authPulse 4s ease-in-out infinite" }} />
 
-      {/* Nebula accents */}
-      <div style={{ position: "absolute", width: "60%", height: "60%", top: "-10%", left: "-15%", background: "radial-gradient(circle, rgba(80,20,130,0.12) 0%, transparent 60%)", filter: "blur(100px)" }} />
-      <div style={{ position: "absolute", width: "50%", height: "50%", bottom: "-10%", right: "-10%", background: "radial-gradient(circle, rgba(30,50,120,0.1) 0%, transparent 60%)", filter: "blur(80px)" }} />
-      <div style={{ position: "absolute", width: "30%", height: "30%", top: "60%", left: "50%", background: "radial-gradient(circle, rgba(100,40,150,0.06) 0%, transparent 60%)", filter: "blur(60px)" }} />
+      {/* Nebula accents — brighter */}
+      <div style={{ position: "absolute", width: "60%", height: "60%", top: "-10%", left: "-15%", background: "radial-gradient(circle, rgba(90,25,150,0.18) 0%, transparent 55%)", filter: "blur(90px)" }} />
+      <div style={{ position: "absolute", width: "50%", height: "50%", bottom: "-10%", right: "-10%", background: "radial-gradient(circle, rgba(35,55,140,0.15) 0%, transparent 55%)", filter: "blur(70px)" }} />
+      <div style={{ position: "absolute", width: "25%", height: "25%", top: "65%", left: "55%", background: "radial-gradient(circle, rgba(120,50,170,0.1) 0%, transparent 55%)", filter: "blur(50px)" }} />
+      <div style={{ position: "absolute", width: "20%", height: "20%", top: "15%", right: "20%", background: "radial-gradient(circle, rgba(40,80,130,0.08) 0%, transparent 55%)", filter: "blur(40px)" }} />
 
-      {/* Form — no card, floating in space */}
+      {/* Form — floating in space */}
       <div style={{ textAlign: "center", position: "relative", zIndex: 2, width: mobile ? "88vw" : 380, animation: "authFadeIn 1s ease" }}>
 
-        {/* Logo + tagline */}
-        <h1 style={{ color: "#f5a623", fontSize: mobile ? 32 : 42, letterSpacing: mobile ? 10 : 16, marginBottom: 8, fontWeight: 300, textShadow: "0 0 30px rgba(245,166,35,0.2)" }}>SHUNYA</h1>
-        <p style={{ color: "rgba(255,255,255,0.2)", fontSize: mobile ? 10 : 12, letterSpacing: mobile ? 3 : 5, marginBottom: 8, textTransform: "uppercase" }}>For your 3 AM thoughts</p>
+        {/* Logo */}
+        <h1 style={{ color: "#f5a623", fontSize: mobile ? 36 : 48, letterSpacing: mobile ? 10 : 18, marginBottom: 10, fontWeight: 300, textShadow: "0 0 40px rgba(245,166,35,0.25)" }}>SHUNYA</h1>
+        <p style={{ color: "rgba(255,255,255,0.3)", fontSize: mobile ? 11 : 13, letterSpacing: mobile ? 3 : 5, marginBottom: 8, textTransform: "uppercase" }}>For your 3 AM thoughts</p>
+        <div style={{ width: 50, height: 1, margin: "0 auto", marginBottom: mobile ? 32 : 44, background: "linear-gradient(90deg, transparent, rgba(245,166,35,0.4), transparent)" }} />
 
-        {/* Thin golden line */}
-        <div style={{ width: 50, height: 1, margin: "0 auto", marginBottom: mobile ? 36 : 48, background: "linear-gradient(90deg, transparent, rgba(245,166,35,0.35), transparent)" }} />
-
-        {/* Mode toggle — minimal text links, not boxed tabs */}
-        <div style={{ display: "flex", justifyContent: "center", gap: mobile ? 24 : 36, marginBottom: mobile ? 28 : 36 }}>
-          <button onClick={() => { setMode("login"); setError(""); }} style={{ background: "none", border: "none", color: mode === "login" ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.2)", fontSize: mobile ? 12 : 13, cursor: "pointer", letterSpacing: 3, textTransform: "uppercase", fontFamily: "Georgia, serif", fontWeight: 400, transition: "color 0.3s", borderBottom: mode === "login" ? "1px solid rgba(245,166,35,0.4)" : "1px solid transparent", paddingBottom: 6 }}>Enter</button>
-          <button onClick={() => { setMode("signup"); setError(""); }} style={{ background: "none", border: "none", color: mode === "signup" ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.2)", fontSize: mobile ? 12 : 13, cursor: "pointer", letterSpacing: 3, textTransform: "uppercase", fontFamily: "Georgia, serif", fontWeight: 400, transition: "color 0.3s", borderBottom: mode === "signup" ? "1px solid rgba(245,166,35,0.4)" : "1px solid transparent", paddingBottom: 6 }}>Begin</button>
+        {/* Mode toggle — clear labels */}
+        <div style={{ display: "flex", justifyContent: "center", gap: mobile ? 28 : 40, marginBottom: mobile ? 32 : 40 }}>
+          <button onClick={() => { setMode("login"); setError(""); }} style={{
+            background: "none", border: "none", cursor: "pointer", fontFamily: "Georgia, serif",
+            color: mode === "login" ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)",
+            fontSize: mobile ? 13 : 14, letterSpacing: 2, fontWeight: 400,
+            borderBottom: mode === "login" ? "1px solid rgba(245,166,35,0.5)" : "1px solid transparent",
+            paddingBottom: 8, transition: "all 0.3s",
+          }}>LOG IN</button>
+          <button onClick={() => { setMode("signup"); setError(""); }} style={{
+            background: "none", border: "none", cursor: "pointer", fontFamily: "Georgia, serif",
+            color: mode === "signup" ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)",
+            fontSize: mobile ? 13 : 14, letterSpacing: 2, fontWeight: 400,
+            borderBottom: mode === "signup" ? "1px solid rgba(245,166,35,0.5)" : "1px solid transparent",
+            paddingBottom: 8, transition: "all 0.3s",
+          }}>CREATE ACCOUNT</button>
         </div>
 
-        {/* Username input — borderless bottom line only */}
-        <input type="text" placeholder={mode === "signup" ? "Choose a username" : "Your username"} value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} autoComplete="username" style={{ width: "100%", padding: "14px 0", marginBottom: 6, background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.85)", fontSize: mobile ? 15 : 16, outline: "none", boxSizing: "border-box", fontFamily: "Georgia, serif", letterSpacing: 1, textAlign: "center" }} />
+        {/* Username */}
+        <input type="text" placeholder={mode === "signup" ? "Pick a username (this is your login)" : "Username"} value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} autoComplete="username" style={{ width: "100%", padding: "16px 0", marginBottom: 8, background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.9)", fontSize: mobile ? 15 : 17, outline: "none", boxSizing: "border-box", fontFamily: "Georgia, serif", letterSpacing: 1, textAlign: "center" }} />
 
         {mode === "signup" && username.length > 0 && (
-          <p style={{ color: validateUsername(username) ? "rgba(255,107,107,0.5)" : "rgba(78,205,196,0.4)", fontSize: 10, marginTop: 4, marginBottom: 4 }}>{validateUsername(username) || "✓ Looks good"}</p>
+          <p style={{ color: validateUsername(username) ? "rgba(255,107,107,0.5)" : "rgba(78,205,196,0.45)", fontSize: 10, marginTop: 6, marginBottom: 2 }}>{validateUsername(username) || "✓ Looks good"}</p>
         )}
 
-        {/* Password input — same style */}
-        <input type="password" placeholder={mode === "signup" ? "Create a password" : "Your password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "signup" ? "new-password" : "current-password"} onKeyDown={(e) => { if (e.key === "Enter") { mode === "signup" ? handleSignup() : handleLogin(); } }} style={{ width: "100%", padding: "14px 0", marginTop: 16, marginBottom: 6, background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.85)", fontSize: mobile ? 15 : 16, outline: "none", boxSizing: "border-box", fontFamily: "Georgia, serif", letterSpacing: 1, textAlign: "center" }} />
+        {/* Password */}
+        <input type="password" placeholder={mode === "signup" ? "Create a password (6+ characters)" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "signup" ? "new-password" : "current-password"} onKeyDown={(e) => { if (e.key === "Enter") { mode === "signup" ? handleSignup() : handleLogin(); } }} style={{ width: "100%", padding: "16px 0", marginTop: 18, marginBottom: 8, background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.9)", fontSize: mobile ? 15 : 17, outline: "none", boxSizing: "border-box", fontFamily: "Georgia, serif", letterSpacing: 1, textAlign: "center" }} />
 
-        {error && <p style={{ color: "rgba(255,107,107,0.7)", fontSize: 11, marginTop: 14, lineHeight: 1.5 }}>{error}</p>}
+        {error && <p style={{ color: "rgba(255,107,107,0.7)", fontSize: 11, marginTop: 16, lineHeight: 1.5 }}>{error}</p>}
 
-        {/* Submit — golden, but more refined */}
-        <button onClick={mode === "signup" ? handleSignup : handleLogin} disabled={loading} style={{ width: mobile ? "100%" : "80%", padding: mobile ? "15px" : "16px", background: "transparent", border: "1px solid rgba(245,166,35,0.35)", borderRadius: 50, color: "#f5a623", fontSize: mobile ? 13 : 14, fontWeight: 400, cursor: "pointer", letterSpacing: 2.5, marginTop: mobile ? 28 : 36, fontFamily: "Georgia, serif", transition: "all 0.3s", opacity: loading ? 0.5 : 1 }}>{loading ? "..." : mode === "signup" ? "✦ RECEIVE YOUR COSMIC NAME" : "✦ ENTER SHUNYA"}</button>
+        {/* Submit */}
+        <button onClick={mode === "signup" ? handleSignup : handleLogin} disabled={loading} style={{ width: mobile ? "100%" : "80%", padding: mobile ? "16px" : "18px", background: "transparent", border: "1px solid rgba(245,166,35,0.4)", borderRadius: 50, color: "#f5a623", fontSize: mobile ? 13 : 14, fontWeight: 400, cursor: "pointer", letterSpacing: 3, marginTop: mobile ? 30 : 40, fontFamily: "Georgia, serif", transition: "all 0.3s", opacity: loading ? 0.5 : 1, textShadow: "0 0 12px rgba(245,166,35,0.15)" }}>{loading ? "..." : mode === "signup" ? "✦ RECEIVE YOUR COSMIC NAME" : "✦ ENTER SHUNYA"}</button>
 
-        {/* Hints — very subtle, below */}
+        {/* Hints */}
         {mode === "signup" && (
-          <div style={{ marginTop: mobile ? 24 : 32 }}>
-            <p style={{ color: "rgba(255,255,255,0.15)", fontSize: 10, lineHeight: 1.8, maxWidth: 320, margin: "0 auto" }}>
-              Use something memorable — your initials, a word that means something to you, or keep it simple. No email. No data. Just you.
+          <div style={{ marginTop: mobile ? 28 : 36 }}>
+            <p style={{ color: "rgba(255,255,255,0.2)", fontSize: mobile ? 10 : 11, lineHeight: 1.8, maxWidth: 340, margin: "0 auto" }}>
+              No email needed. No data collected. Just pick a username you will remember — your initials, a nickname, anything.
             </p>
-            <p style={{ color: "rgba(255,107,107,0.25)", fontSize: 9, marginTop: 12, lineHeight: 1.5 }}>
-              There is no password recovery. Remember it.
+            <p style={{ color: "rgba(255,107,107,0.3)", fontSize: mobile ? 9 : 10, marginTop: 14, lineHeight: 1.5 }}>
+              No password recovery exists. Write it somewhere safe.
             </p>
           </div>
         )}
         {mode === "login" && (
-          <p style={{ color: "rgba(255,255,255,0.12)", fontSize: 10, marginTop: mobile ? 24 : 32, lineHeight: 1.6, letterSpacing: 0.5 }}>
-            Enter with the username and password you created.
+          <p style={{ color: "rgba(255,255,255,0.15)", fontSize: mobile ? 10 : 11, marginTop: mobile ? 28 : 36, lineHeight: 1.6 }}>
+            Use the username and password you created when you signed up.
           </p>
         )}
       </div>
@@ -210,8 +221,8 @@ export default function AuthPage({ onAuth, onSignupStart }) {
       <style>{`
         @keyframes authFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes authPulse { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
-        input::placeholder { color: rgba(255,255,255,0.15); }
-        input:focus { border-bottom-color: rgba(245,166,35,0.3) !important; }
+        input::placeholder { color: rgba(255,255,255,0.18); }
+        input:focus { border-bottom-color: rgba(245,166,35,0.35) !important; }
       `}</style>
     </div>
   );
