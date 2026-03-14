@@ -92,6 +92,46 @@ function getQuestionsForPlanet(planetId, ageGroup) {
 
 const SUN_BASE_SIZE = 38;
 
+// ─── Quote of the Day ───
+const DAILY_QUOTES = [
+  "You cannot get more time in life, so give more life to your time.",
+  "The wound is the place where the light enters you. — Rumi",
+  "What you seek is seeking you.",
+  "Be empty of worrying. Think of who created thought.",
+  "The only way out is through.",
+  "You are not a drop in the ocean. You are the entire ocean in a drop.",
+  "The cave you fear to enter holds the treasure you seek.",
+  "Stars cannot shine without darkness.",
+  "Your task is not to seek for love, but to find all the barriers within yourself that you have built against it.",
+  "The quieter you become, the more you can hear.",
+  "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+  "The universe is not outside of you. Look inside yourself — everything that you want, you already are.",
+  "Do not wait for the storm to pass. Learn to dance in the rain.",
+  "Healing is not linear. Neither are the stars.",
+  "You are allowed to be both a masterpiece and a work in progress.",
+  "The moon does not fight. It attacks no one. And yet it moves the entire ocean.",
+  "Almost everything will work again if you unplug it for a few minutes. Including you.",
+  "You do not have to be positive all the time. It is perfectly okay to feel sad, angry, or frustrated.",
+  "The best time to plant a tree was twenty years ago. The second best time is now.",
+  "Not all storms come to disrupt your life. Some come to clear your path.",
+  "Your soul knows the geography of your destiny. Trust it.",
+  "Be patient with yourself. You are growing in ways you cannot see.",
+  "What consumes your mind controls your life.",
+  "Breathe. You are alive. That is enough for today.",
+  "The broken will always be able to love harder than most. Once you have been in the dark, you learn to appreciate everything that shines.",
+  "Sometimes the universe puts you in the same situation again to see if you are still a fool.",
+  "You are the sky. Everything else is just the weather.",
+  "Stop watering dead flowers.",
+  "If you want to fly, give up everything that weighs you down.",
+  "One day you will tell your story of how you overcame what you went through and it will be someone else's survival guide.",
+];
+
+function getDailyQuote() {
+  const today = new Date();
+  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
+  return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
+}
+
 export default function App() {
   const canvasRef = useRef(null);
   const [user, setUser] = useState(null);
@@ -769,10 +809,36 @@ export default function App() {
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 70%, transparent 100%)" }}>
           <span style={{ color: "#f5a623", fontSize: 14, letterSpacing: 4, fontWeight: 300 }}>SHUNYA</span>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ color: "rgba(255,215,0,0.8)", fontSize: 11 }}>★ {starsCollected}</span>
-            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{anonymousName}</span>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{anonymousName}</span>
             <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 10px", color: "rgba(255,255,255,0.4)", fontSize: 10, cursor: "pointer" }}>EXIT</button>
           </div>
+        </div>
+      )}
+
+      {/* Stars counter — bottom right on mobile, top bar on desktop */}
+      {mobile && !hasOverlay && (
+        <div style={{
+          position: "absolute", bottom: 20, right: 16, zIndex: 10,
+          background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)",
+          border: "1px solid rgba(255,215,0,0.15)", borderRadius: 20,
+          padding: "8px 16px", display: "flex", alignItems: "center", gap: 6,
+        }}>
+          <span style={{ color: "rgba(255,215,0,0.9)", fontSize: 13 }}>★</span>
+          <span style={{ color: "rgba(255,215,0,0.7)", fontSize: 13, fontFamily: "Georgia, serif" }}>{starsCollected}</span>
+        </div>
+      )}
+
+      {/* Quote of the day — bottom center */}
+      {!hasOverlay && (
+        <div style={{
+          position: "absolute", bottom: mobile ? 60 : 20, left: "50%", transform: "translateX(-50%)",
+          zIndex: 10, maxWidth: mobile ? "75%" : 500, textAlign: "center",
+        }}>
+          <p style={{
+            color: "rgba(255,255,255,0.2)", fontSize: mobile ? 10 : 12,
+            fontFamily: "Georgia, serif", fontStyle: "italic", lineHeight: 1.6,
+            letterSpacing: 0.5,
+          }}>{getDailyQuote()}</p>
         </div>
       )}
 
