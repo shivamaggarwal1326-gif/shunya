@@ -5,37 +5,90 @@ import AuthPage from "./AuthPage";
 const PLANETS = [
   { id: "aatma", name: "AATMA", meaning: "The Soul · आत्मा", color: "#e07840", glow: "rgba(224,120,64,0.4)", baseSize: 16, baseOrbit: 150, speed: 0.0005,
     description: "Aatma is the eternal soul — the part of you that existed before your name, your wounds, and your achievements. It is not your personality. It is not your story. It is the awareness behind all of it.",
-    howItLives: "When you sit in silence and feel something ancient — something that was here before your first memory — that is Aatma. Journal here when you want to speak from beyond identity.",
-    journalPrompt: "What truth would remain if everything about your life was stripped away?" },
+    howItLives: "When you sit in silence and feel something ancient — something that was here before your first memory — that is Aatma. Journal here when you want to speak from beyond identity." },
   { id: "pranaa", name: "PRANAA", meaning: "The Life Force · प्राण", color: "#4ecdc4", glow: "rgba(78,205,196,0.4)", baseSize: 14, baseOrbit: 280, speed: 0.0004,
     description: "Pranaa is the breath that moves through you — the invisible force that keeps you alive without asking permission. It is energy itself. Not the kind you drink coffee for. The kind that animates your entire being.",
-    howItLives: "When you feel alive — truly, electrically alive — that is Pranaa. When you feel drained, disconnected, heavy — Pranaa is asking for attention. Journal here about your energy, your body, your aliveness.",
-    journalPrompt: "Where in your body do you feel the most alive right now? Where do you feel nothing?" },
+    howItLives: "When you feel alive — truly, electrically alive — that is Pranaa. When you feel drained, disconnected, heavy — Pranaa is asking for attention. Journal here about your energy, your body, your aliveness." },
   { id: "kaal", name: "KAAL", meaning: "Time · काल", color: "#a78bfa", glow: "rgba(167,139,250,0.4)", baseSize: 18, baseOrbit: 390, speed: 0.00035,
     description: "Kaal is time — not the clock on your wall but the deeper rhythm that governs birth, death, seasons, and everything in between. Kaal does not rush. Kaal does not wait. It simply moves.",
-    howItLives: "When you feel anxious about the future or trapped in the past — that is your relationship with Kaal. Journal here when time feels heavy, when you want to process what was or prepare for what is coming.",
-    journalPrompt: "What moment in your past still holds power over your present?" },
+    howItLives: "When you feel anxious about the future or trapped in the past — that is your relationship with Kaal. Journal here when time feels heavy, when you want to process what was or prepare for what is coming." },
   { id: "dharma", name: "DHARMA", meaning: "Purpose · धर्म", color: "#f093fb", glow: "rgba(240,147,251,0.4)", baseSize: 15, baseOrbit: 490, speed: 0.0003,
     description: "Dharma is your sacred duty — the thing you were put here to do. Not your job title. Not what society expects. The deep, quiet calling that only you can hear when everything else goes silent.",
-    howItLives: "When you feel lost, purposeless, or stuck in a life that does not feel like yours — Dharma is calling. Journal here when you want to explore what you are truly meant to do.",
-    journalPrompt: "If money and judgment did not exist, what would you spend your life doing?" },
+    howItLives: "When you feel lost, purposeless, or stuck in a life that does not feel like yours — Dharma is calling. Journal here when you want to explore what you are truly meant to do." },
   { id: "moksha", name: "MOKSHA", meaning: "Liberation · मोक्ष", color: "#ffd700", glow: "rgba(255,215,0,0.4)", baseSize: 13, baseOrbit: 570, speed: 0.00025,
     description: "Moksha is the ultimate freedom — liberation from the cycles of suffering, attachment, and repetition. It is not an escape from life but a deeper entrance into it, free from chains.",
-    howItLives: "When you want to send a message to your future self — when you want to set something free — Moksha is where you go. Messages here can be locked and revealed later.",
-    journalPrompt: "What would you tell yourself one year from today?" },
+    howItLives: "When you want to send a message to your future self — when you want to set something free — Moksha is where you go. Messages here can be locked and revealed later." },
   { id: "karma", name: "KARMA", meaning: "Action · कर्म", color: "#ff6b6b", glow: "rgba(255,107,107,0.4)", baseSize: 16, baseOrbit: 650, speed: 0.0002,
     description: "Karma is not punishment. It is the simple truth that every action creates a ripple. What you do, what you say, what you think — it all echoes forward. Karma is the universe keeping a ledger.",
-    howItLives: "When you feel guilt, pride, consequence, or the weight of choices — that is Karma speaking. Journal here to process your actions and their echoes.",
-    journalPrompt: "What is one action from this week that will ripple into your future?" },
+    howItLives: "When you feel guilt, pride, consequence, or the weight of choices — that is Karma speaking. Journal here to process your actions and their echoes." },
   { id: "akasha", name: "AKASHA", meaning: "Space · आकाश", color: "#74b9ff", glow: "rgba(116,185,255,0.4)", baseSize: 17, baseOrbit: 720, speed: 0.00015,
     description: "Akasha is the infinite space — the ether that holds everything and nothing. It is the canvas on which the universe paints. Without Akasha, there is no room for anything to exist.",
-    howItLives: "When you feel overwhelmed, cluttered, suffocated — Akasha is asking you to create space. Journal here when you need room to breathe, to think, to simply be.",
-    journalPrompt: "What are you holding onto that no longer deserves space in your life?" },
+    howItLives: "When you feel overwhelmed, cluttered, suffocated — Akasha is asking you to create space. Journal here when you need room to breathe, to think, to simply be." },
   { id: "maya", name: "MAYA", meaning: "Illusion · माया", color: "#fd79a8", glow: "rgba(253,121,168,0.4)", baseSize: 12, baseOrbit: 780, speed: 0.00012,
     description: "Maya is the grand illusion — the veil that makes you believe the temporary is permanent, the material is everything, and the ego is who you truly are. Maya is not evil. It is the game.",
-    howItLives: "When you catch yourself chasing something hollow, believing a lie you told yourself, or living someone else's life — that is Maya. Journal here to see through the illusion.",
-    journalPrompt: "What story have you been telling yourself that is not actually true?" }
+    howItLives: "When you catch yourself chasing something hollow, believing a lie you told yourself, or living someone else's life — that is Maya. Journal here to see through the illusion." }
 ];
+
+// ─── 224 Age-Targeted Questions ───
+const QUESTIONS = {
+  aatma: {
+    "16-22": ["When you are completely alone with no phone and no noise what do you feel","Who are you when nobody needs you to be anything","What do you believe about yourself that has nothing to do with what others think","What do you feel in your gut about who you actually are","If you could not define yourself by your interests or achievements who would you be","What part of you feels most real and most unseen at the same time","What do you know about yourself that you have never said out loud"],
+    "23-30": ["Strip away your job your relationships your image — who are you underneath all of it","What do you come back to when everything else falls away","When do you feel most like yourself — not performing, not achieving, just being","What does your soul want that your life is not currently giving it","What would you think about all day if you had no responsibilities for a week","What do you know to be true about yourself that the world has not confirmed yet","Who are you becoming and do you recognise that person"],
+    "31-45": ["What would you think about if you had nothing to distract you for an entire day","When did you last feel fully yourself — not a role, not a title, just you","What does your inner life look like compared to your outer life","What do you believe about who you are at your core","What part of yourself have you been neglecting to keep everything else running","What does your soul already know that your mind has been arguing with","Who are you when you are not being needed by anyone"],
+    "45+": ["What are you finally ready to let go of","Who have you become and who did you always know you were","What does it feel like to be you right now — really","What have you learned about yourself that took a lifetime to understand","What is your soul trying to tell you in this season of your life","What do you know now about who you truly are that you could not have known at thirty","What does it mean to you to be at peace with yourself"]
+  },
+  pranaa: {
+    "16-22": ["What are you doing when you completely forget to check your phone","When did you last feel so alive that you forgot to perform for anyone","What would you do every single day if energy was never an issue","What lights you up that you have been told is not practical","When did you last feel truly electric — what were you doing","What drains you that you keep saying yes to","If your body could speak right now what would it say it needs"],
+    "23-30": ["When did you last feel genuinely excited about your own life","What are you doing when hours feel like minutes","What have you stopped doing that used to make you feel alive","What does your body know that your mind keeps overriding","When did you last feel fully present — not performing, not planning","What are you waiting for before you let yourself feel alive again","What would you do differently tomorrow if you trusted your energy"],
+    "31-45": ["What part of yourself did you stop feeding because life got busy","When did you last do something purely because it felt good","What used to light you up that you have quietly abandoned","If you stripped away every obligation what would your body choose to do","What are you postponing until things calm down that may never calm down","When did you last feel like yourself — really yourself","What are you carrying that is costing you your aliveness"],
+    "45+": ["What have you been saving yourself for that you keep postponing","When did you last feel so alive that time disappeared","What would you do every morning if nobody needed anything from you","What has your body been trying to tell you that you keep ignoring","What are you still waiting for permission to enjoy","If this were your last fully healthy year what would you do more of","What does being truly alive mean to you right now at this age"]
+  },
+  kaal: {
+    "16-22": ["What are you waiting to become before you start actually living","What would you do this week if you knew you only had one year left","What are you putting off until you feel ready that you will never feel ready for","What are you doing with your time right now that you will not remember in ten years","What conversation are you avoiding that needs to happen soon","What would change if you treated today like it actually mattered","What are you waiting for that is already here if you looked for it"],
+    "23-30": ["What conversation have you been postponing that needs to happen now","What are you doing in your thirties that you will regret in your forties","What have you been saying you will do someday that someday is never coming for","What would you do differently this month if you knew it was your last healthy one","What relationship are you neglecting because you assume there is still time","What does your calendar say about what you actually value versus what you say you value","What are you tolerating right now that is slowly costing you your life"],
+    "31-45": ["If you found out you had one year left what would you immediately stop doing","What are you pretending still has time that does not","What would you do today if you finally accepted that time is not coming back","What have you been delaying for a more convenient moment that will not arrive","What does your use of time say about your actual priorities","What relationship deserves more of your time than you are currently giving it","What would you regret most if this year was your last healthy one"],
+    "45+": ["What unlived life is still waiting inside you","What did you always mean to do that you have not done yet","What would you do in the time you have left if you stopped waiting","What are you still postponing that your body is telling you to do now","What conversation needs to happen before it is no longer possible","What part of your unlived life can still be lived if you start now","What does time mean to you now in a way it never did before"]
+  },
+  dharma: {
+    "16-22": ["If marks money and approval did not exist what would you spend your days doing","What do you secretly think you are meant for that you have not told anyone","What would you pursue if failure was not embarrassing","What makes you angry about the world that you might be here to fix","If you could not fail what would you try","What do people ask you for help with that feels effortless to you","What would your life look like if you designed it yourself from scratch"],
+    "23-30": ["Is the life you are building actually yours or did someone else design it for you","What would you do with your days if you had already proven yourself","When did you last feel like your work mattered beyond a paycheck","What are you good at that you have been undervaluing","What would you regret not trying if you looked back at thirty five","What does your gut say your purpose is even if your brain disagrees","What are you building that you actually want to live inside"],
+    "31-45": ["When you are completely honest with yourself what do you know you are meant to do","What would you change about your work if you were not afraid of starting over","What legacy do you want to leave that you have not started building yet","When do you feel most useful — not busy, but genuinely useful","What would you do differently if you knew you had twenty good years left","What have you been tolerating in your work that you should have addressed years ago","If money was solved what would you spend your remaining years doing"],
+    "45+": ["Looking back when were you most aligned with who you truly are","What work made you feel like yourself in a way nothing else has","What did you know you were meant to do that life interrupted","What wisdom have you earned that you have not yet passed on","What would your younger self say if they saw how you spend your days now","What is still unfinished in you that wants to be expressed","What would you do in whatever time remains if you let yourself be fully honest"]
+  },
+  moksha: {
+    "16-22": ["What would you do tomorrow if you were not afraid of what anyone thought","What would your life look like if you stopped performing for everyone","What are you holding back about yourself because you are afraid of the reaction","What does freedom mean to you right now in your actual life","What would you say yes to if other people's opinions did not exist","What would you stop doing immediately if you gave yourself permission to stop","What would the freest version of you do differently starting tomorrow"],
+    "23-30": ["What would your life look like if you stopped trying to prove something to someone","What are you chasing that is really just about earning someone's approval","What would you stop doing if you genuinely believed you were already enough","What does freedom actually look like for you in your real day to day life","What are you holding yourself back from because you do not think you deserve it yet","What would you do if you knew for certain that you were not going to be judged","What part of your life is a cage you built yourself and what would it take to open it"],
+    "31-45": ["What does freedom actually mean to you and how far are you from it","What would you walk away from tomorrow if you trusted yourself completely","What are you staying in out of fear that you are calling responsibility","What would your life look like if you designed it purely around what makes you free","What have you been tolerating for so long that you have forgotten it is a choice","What would change if you gave yourself full permission to want what you actually want","What does the version of you that is truly free look like"],
+    "45+": ["Have you given yourself permission to be happy yet and if not what are you waiting for","What would you finally allow yourself to enjoy if you stopped earning it first","What does liberation mean to you now that you have lived enough to know what matters","What are you still holding onto that it is time to put down","What would the rest of your life look like if you chose freedom over comfort","What do you want to feel in your final years that you are not feeling now","What would it mean to be truly free and what is one thing you could do today toward that"]
+  },
+  karma: {
+    "16-22": ["What is something you did that you wish you could take back and why haven't you","Who did you hurt recently that you have not apologised to","What pattern keeps showing up in your friendships that comes from you","What are you doing right now that your future self will regret","What have you been blaming on others that is actually your responsibility","What would change in your life if you took full ownership of where you are","What are you doing with your time right now that you know is a waste"],
+    "23-30": ["What pattern keeps showing up in your life that you know is coming from you","What are you repeatedly attracting that is a mirror of something inside you","What habit are you maintaining that contradicts everything you say you want","Who have you wronged that you have been avoiding thinking about","What would your life look like if you stopped repeating this pattern","What are you doing today that is creating the future you say you do not want","What is the one thing you know you need to stop that you keep not stopping"],
+    "31-45": ["Who do you owe an apology to including yourself","What have you been doing for years that you know is not aligned with your values","What patterns from your parents have you unconsciously inherited","What does your track record say about what you actually prioritise","What would change if you fully forgave yourself for one specific thing","What are you still punishing yourself for that has already been long enough","What would you do differently if you genuinely believed you deserved good things"],
+    "45+": ["What would you do differently if you could go back and can you still do it now","What have you carried for decades that was never yours to carry","Who in your life deserves more than they have received from you","What do you wish you had said to someone you can no longer say it to","What would forgiving yourself for one thing completely change right now","What pattern ends with you if you choose to end it","What do you want to make right before it is too late to make it right"]
+  },
+  akasha: {
+    "16-22": ["Name one person in your life you have never properly thanked and why not","What do you have right now that you would miss desperately if it disappeared tomorrow","What beauty exists in your ordinary day that you scroll past","What are you taking for granted about your body right now","Who has shown up for you recently that you have not acknowledged","What small thing happened today that was actually kind of miraculous","What would you notice if you paid full attention to your life for just one hour"],
+    "23-30": ["What do you have right now that your past self would have been desperate for","What are you chasing so hard that you cannot see what is already here","What relationship in your life do you undervalue because it has always been there","What about your current life would feel like a dream to you five years ago","What are you waiting to appreciate until after it is gone","What ordinary Wednesday of your life would you give anything to relive","What is quietly wonderful about your life right now that you rarely acknowledge"],
+    "31-45": ["When did you last stop and feel genuinely lucky to be alive","What do you have that people all over the world are praying for right now","What relationships have you been maintaining on autopilot that deserve more presence","What about your body are you criticising that is actually working incredibly hard for you","What would change if you spent one week genuinely grateful for what already is","What memory from your life makes you feel rich when you really sit with it","What have you been overlooking in your daily life that is actually extraordinary"],
+    "45+": ["What has life given you that you never asked for but cannot imagine living without","What are you grateful for now that you were too busy to appreciate when it was new","What moments from your life do you return to when you need to feel that it was worth it","What love have you received that you have never fully let yourself feel","What small daily thing would you miss most if it was gone tomorrow","What does abundance actually look like in your life right now","If you wrote a letter of gratitude to your life what would it say"]
+  },
+  maya: {
+    "16-22": ["Who do you pretend to be around people whose approval you want","What do you post about yourself that is not really you","What do you believe about yourself that came from someone else's words","What would you do differently if nobody was watching your life","What are you afraid people would think if they knew the real you","What mask are you wearing so often you have almost forgotten it is a mask","What do you want that you are ashamed to admit you want"],
+    "23-30": ["What belief about yourself are you carrying that was never actually yours","What version of yourself are you performing at work that is not really you","What do you want that you have been pretending you do not want","What story about your life have you been telling that is no longer true","What are you chasing that you secretly know will not make you feel complete","What would change if you stopped trying to be the person people expect","What are you hiding about yourself that would actually make people love you more"],
+    "31-45": ["What are you chasing that you secretly know will not make you feel complete","What have you been performing for so long that you have forgotten who you are underneath","What do you own or pursue that is really about other people's perception of you","What would your life look like if you stopped keeping up appearances","What are you afraid would happen if people saw your actual life","What do you truly want that is different from what you have been telling yourself you want","What illusion about yourself are you finally ready to let go of"],
+    "45+": ["What have you been telling yourself for years that you are finally ready to question","What image of yourself have you maintained that has cost you the most","What do you wish you had been more honest about earlier in your life","What have you been pretending is fine that has never actually been fine","What would you stop doing tomorrow if you no longer cared what anyone thought","What truth about yourself have you been avoiding that is actually freeing","What mask can you finally take off now that you have earned the right to be real"]
+  }
+};
+
+// Get questions for a planet based on age group
+function getQuestionsForPlanet(planetId, ageGroup) {
+  const planetQs = QUESTIONS[planetId];
+  if (!planetQs) return ["What is on your mind today?"];
+  if (ageGroup && planetQs[ageGroup]) return planetQs[ageGroup];
+  // Fallback: merge all age groups if no age set
+  return Object.values(planetQs).flat();
+}
 
 const SUN_BASE_SIZE = 38;
 
@@ -46,6 +99,10 @@ export default function App() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [selectedPlanet, setSelectedPlanet] = useState(null);
   const [journalOpen, setJournalOpen] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState("");
+  const [ageGroup, setAgeGroup] = useState(null);
+  const [showAgePrompt, setShowAgePrompt] = useState(false);
+  const promptHistoryRef = useRef({}); // tracks last prompt index per planet
   const [journalText, setJournalText] = useState("");
   const [saving, setSaving] = useState(false);
   const [moonCounts, setMoonCounts] = useState({});
@@ -96,7 +153,7 @@ export default function App() {
 
   const loadUserData = async (authUser) => {
     const { data: profile } = await supabase.from("profiles").select("*").eq("id", authUser.id).single();
-    if (profile) { setAnonymousName(profile.anonymous_name); setSunSize(SUN_BASE_SIZE * profile.sun_size); setStarsCollected(profile.stars_collected); starsRef.current = profile.stars_collected; }
+    if (profile) { setAnonymousName(profile.anonymous_name); setSunSize(SUN_BASE_SIZE * profile.sun_size); setStarsCollected(profile.stars_collected); starsRef.current = profile.stars_collected; if (profile.age_group) setAgeGroup(profile.age_group); }
     const { data: moons } = await supabase.from("moon_progress").select("*").eq("user_id", authUser.id);
     if (moons) { const c = {}; moons.forEach((m) => (c[m.planet_id] = m.moon_count)); setMoonCounts(c); }
     setUser(authUser); setCheckingAuth(false);
@@ -690,7 +747,21 @@ export default function App() {
 
           {/* Action buttons — pinned at bottom feel */}
           <div style={{ width: "100%", maxWidth: 400 }}>
-            <button onClick={() => setJournalOpen(true)} style={{
+            <button onClick={() => {
+              if (!ageGroup) {
+                // First time — ask age before journaling
+                setShowAgePrompt(true);
+                return;
+              }
+              // Pick a rotating prompt from the 224 question bank
+              const prompts = getQuestionsForPlanet(selectedPlanet.id, ageGroup);
+              const lastIdx = promptHistoryRef.current[selectedPlanet.id] ?? -1;
+              let newIdx;
+              do { newIdx = Math.floor(Math.random() * prompts.length); } while (newIdx === lastIdx && prompts.length > 1);
+              promptHistoryRef.current[selectedPlanet.id] = newIdx;
+              setCurrentPrompt(prompts[newIdx]);
+              setJournalOpen(true);
+            }} style={{
               width: "100%", padding: mobile ? "15px" : "18px", border: "none", borderRadius: 14,
               background: `linear-gradient(135deg, ${selectedPlanet.color}, ${selectedPlanet.color}cc)`,
               color: "#000", fontSize: mobile ? 14 : 15, fontWeight: 700, cursor: "pointer",
@@ -703,6 +774,56 @@ export default function App() {
               color: "rgba(255,255,255,0.4)", fontSize: 13, cursor: "pointer",
               letterSpacing: 1, marginTop: 12, fontFamily: "Georgia, serif",
             }}>View Past Entries</button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════ */}
+      {/* AGE PROMPT — one-time subtle question     */}
+      {/* ═══════════════════════════════════════ */}
+      {showAgePrompt && selectedPlanet && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 25,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          animation: "overlayIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+        }}>
+          <div style={{ maxWidth: 420, textAlign: "center", padding: mobile ? "0 24px" : 0 }}>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, letterSpacing: 3, textTransform: "uppercase", marginBottom: 20 }}>Before we begin</p>
+            <h2 style={{ color: "rgba(255,255,255,0.85)", fontSize: mobile ? 20 : 26, fontWeight: 300, letterSpacing: 2, marginBottom: 12, fontFamily: "Georgia, serif" }}>
+              How old are you?
+            </h2>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: mobile ? 12 : 14, marginBottom: 36, lineHeight: 1.7 }}>
+              Shunya shapes its questions to where you are in life. This is asked only once and stays private forever.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {[
+                { label: "16 – 22", value: "16-22" },
+                { label: "23 – 30", value: "23-30" },
+                { label: "31 – 45", value: "31-45" },
+                { label: "45+", value: "45+" },
+              ].map((opt) => (
+                <button key={opt.value} onClick={async () => {
+                  setAgeGroup(opt.value);
+                  setShowAgePrompt(false);
+                  // Save to database
+                  await supabase.from("profiles").update({ age_group: opt.value }).eq("id", user.id);
+                  // Now open journal with age-targeted prompt
+                  const prompts = getQuestionsForPlanet(selectedPlanet.id, opt.value);
+                  const idx = Math.floor(Math.random() * prompts.length);
+                  promptHistoryRef.current[selectedPlanet.id] = idx;
+                  setCurrentPrompt(prompts[idx]);
+                  setJournalOpen(true);
+                }} style={{
+                  padding: mobile ? "14px" : "16px",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 14, color: "rgba(255,255,255,0.7)",
+                  fontSize: mobile ? 15 : 16, cursor: "pointer",
+                  fontFamily: "Georgia, serif", letterSpacing: 2,
+                  transition: "all 0.2s",
+                }}>{opt.label}</button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -846,7 +967,7 @@ export default function App() {
               color: "rgba(160,158,150,0.5)", fontSize: mobile ? 12 : 15,
               fontStyle: "italic", marginBottom: mobile ? 24 : 36,
               lineHeight: 1.9, textAlign: "center", maxWidth: 560,
-            }}>"{selectedPlanet.journalPrompt}"</p>
+            }}>"{currentPrompt}"</p>
 
             {/* Divider — crack in surface */}
             <div style={{
