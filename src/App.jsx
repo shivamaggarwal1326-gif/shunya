@@ -178,7 +178,9 @@ export default function App() {
   const [newTodoPriority, setNewTodoPriority] = useState("medium");
   const [activeComet, setActiveComet] = useState(null);
   const [toast, setToast] = useState(null);
-  const [showPlanetNav, setShowPlanetNav] = useState(false); // { message, type: "error" | "success" }
+  const [showPlanetNav, setShowPlanetNav] = useState(false);
+  const [showSunCore, setShowSunCore] = useState(false);
+  const [sunCoreData, setSunCoreData] = useState(null); // { message, type: "error" | "success" }
 
   // Show toast notification — auto-dismisses
   const showToast = (message, type = "error") => {
@@ -501,6 +503,27 @@ export default function App() {
         const d = Math.hypot(comet.x - mx, comet.y - my);
         if (d < 40) { setActiveComet({ name: comet.name, fact: comet.fact, question: comet.question, color: comet.color }); }
       });
+      // Check sun click
+      const sunDist = Math.hypot(cx - mx, cy - my);
+      const currentSunSize = (sunSize / SUN_BASE_SIZE) * SUN_BASE_SIZE * scale;
+      if (sunDist < currentSunSize + 20) {
+        // Load all entries grouped by planet for pie chart
+        supabase.from("journal_entries").select("planet_id").eq("user_id", user.id).then(({ data }) => {
+          if (data) {
+            const counts = {};
+            data.forEach((e) => { counts[e.planet_id] = (counts[e.planet_id] || 0) + 1; });
+            const total = data.length;
+            const planetData = PLANETS.map((p) => ({
+              id: p.id, name: p.name, color: p.color, meaning: p.meaning,
+              count: counts[p.id] || 0,
+              percent: total > 0 ? Math.round(((counts[p.id] || 0) / total) * 100) : 0,
+            })).filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
+            setSunCoreData({ planetData, total, merges: Math.floor(total / 10) });
+            setShowSunCore(true);
+          }
+        });
+        return; // Don't also select a planet
+      }
       const t = timeRef.current;
       PLANETS.forEach((planet) => {
         const angle = t * planet.speed; const orbit = planet.baseOrbit * scale;
@@ -1053,7 +1076,7 @@ export default function App() {
   if (!user) return <AuthPage onAuth={handleAuth} onSignupStart={() => { onboardingInProgress.current = true; }} />;
 
   // ─── Overlay: determines what's shown over the solar system ───
-  const hasOverlay = selectedPlanet !== null || showAgePrompt || showDharmaTodos;
+  const hasOverlay = selectedPlanet !== null || showAgePrompt || showDharmaTodos || showSunCore;
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: "#000", fontFamily: "Georgia, serif", cursor: "none" }}>
@@ -1258,6 +1281,131 @@ export default function App() {
               borderRadius: 12, color: "rgba(255,255,255,0.4)",
               fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif", letterSpacing: 1.5,
             }}>Continue Exploring</button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════ */}
+      {/* SUN CORE — Your inner universe map       */}
+      {/* ═══════════════════════════════════════ */}
+      {showSunCore && sunCoreData && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 22,
+          display: "flex", flexDirection: mobile ? "column" : "row",
+          alignItems: "center", justifyContent: "center",
+          animation: "overlayIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
+          padding: mobile ? "60px 20px 40px" : "40px",
+          overflowY: "auto",
+        }}>
+          {/* Close */}
+          <button onClick={() => setShowSunCore(false)} style={{
+            position: "absolute", top: mobile ? 16 : 24, right: mobile ? 16 : 24,
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "50%", width: 36, height: 36, color: "rgba(255,255,255,0.5)",
+            fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10,
+          }}>✕</button>
+
+          {/* LEFT — Pie chart visualization */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginRight: mobile ? 0 : 60, marginBottom: mobile ? 30 : 0 }}>
+            {/* SVG Pie Chart */}
+            <svg width={mobile ? 200 : 260} height={mobile ? 200 : 260} viewBox="0 0 260 260">
+              {(() => {
+                const size = 260;
+                const cx = size / 2, cy = size / 2, r = 100;
+                let cumulative = 0;
+                const slices = sunCoreData.planetData.length > 0 ? sunCoreData.planetData : [{ percent: 100, color: "rgba(255,255,255,0.1)" }];
+
+                return slices.map((p, i) => {
+                  const pct = Math.max(p.percent, 1);
+                  const startAngle = (cumulative / 100) * Math.PI * 2 - Math.PI / 2;
+                  cumulative += pct;
+                  const endAngle = (cumulative / 100) * Math.PI * 2 - Math.PI / 2;
+                  const largeArc = pct > 50 ? 1 : 0;
+                  const x1 = cx + r * Math.cos(startAngle);
+                  const y1 = cy + r * Math.sin(startAngle);
+                  const x2 = cx + r * Math.cos(endAngle);
+                  const y2 = cy + r * Math.sin(endAngle);
+
+                  return (
+                    <path key={i} d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                      fill={p.color || "rgba(255,255,255,0.05)"}
+                      opacity={0.8} stroke="rgba(0,0,0,0.3)" strokeWidth={1}
+                    />
+                  );
+                });
+              })()}
+              {/* Inner circle — sun core */}
+              <circle cx={130} cy={130} r={50} fill="url(#sunCoreGrad)" />
+              <defs>
+                <radialGradient id="sunCoreGrad">
+                  <stop offset="0%" stopColor="#fffbe8" />
+                  <stop offset="40%" stopColor="#f5a623" />
+                  <stop offset="100%" stopColor="#8a5a00" />
+                </radialGradient>
+              </defs>
+              {/* Center text */}
+              <text x={130} y={125} textAnchor="middle" fill="#fff" fontSize={22} fontFamily="Georgia" fontWeight="300">{sunCoreData.total}</text>
+              <text x={130} y={145} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize={9} letterSpacing={2} fontFamily="Georgia">ENTRIES</text>
+            </svg>
+
+            {/* Stats below chart */}
+            <div style={{ display: "flex", gap: mobile ? 20 : 28, marginTop: 20 }}>
+              <div style={{ textAlign: "center" }}>
+                <span style={{ color: "#f5a623", fontSize: mobile ? 20 : 24, fontFamily: "Georgia, serif", fontWeight: 300 }}>{sunCoreData.merges}</span>
+                <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 9, letterSpacing: 2, marginTop: 4 }}>MERGES</p>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <span style={{ color: "rgba(255,215,0,0.8)", fontSize: mobile ? 20 : 24, fontFamily: "Georgia, serif", fontWeight: 300 }}>{starsCollected}</span>
+                <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 9, letterSpacing: 2, marginTop: 4 }}>STARS</p>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <span style={{ color: "rgba(255,255,255,0.6)", fontSize: mobile ? 20 : 24, fontFamily: "Georgia, serif", fontWeight: 300 }}>{(sunSize / SUN_BASE_SIZE).toFixed(1)}x</span>
+                <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 9, letterSpacing: 2, marginTop: 4 }}>SUN SIZE</p>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT — Planet breakdown list */}
+          <div style={{ maxWidth: mobile ? "100%" : 340, width: "100%" }}>
+            <h2 style={{ color: "#f5a623", fontSize: mobile ? 18 : 22, letterSpacing: mobile ? 3 : 5, fontWeight: 300, marginBottom: 6, fontFamily: "Georgia, serif" }}>YOUR CORE</h2>
+            <p style={{ color: "rgba(255,255,255,0.2)", fontSize: mobile ? 10 : 11, letterSpacing: 2, marginBottom: mobile ? 20 : 28 }}>Where your soul has traveled</p>
+
+            {sunCoreData.planetData.length === 0 ? (
+              <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 13, fontStyle: "italic", fontFamily: "Georgia, serif" }}>
+                Your sun is waiting. Start journaling to see your inner universe take shape.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {sunCoreData.planetData.map((p) => (
+                  <button key={p.id} onClick={() => {
+                    setShowSunCore(false);
+                    const planet = PLANETS.find((pl) => pl.id === p.id);
+                    if (planet) {
+                      setSelectedPlanet(planet); setSelectedMoonEntry(null);
+                      supabase.from("journal_entries").select("*").eq("user_id", user.id).eq("planet_id", p.id).order("created_at", { ascending: false }).then(({ data }) => {
+                        setPastEntries(data || []);
+                      });
+                    }
+                  }} style={{
+                    display: "flex", alignItems: "center", gap: 14,
+                    padding: mobile ? "12px 14px" : "14px 16px",
+                    background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
+                    borderRadius: 14, cursor: "pointer", textAlign: "left", width: "100%",
+                    borderLeft: `3px solid ${p.color}`,
+                    transition: "background 0.2s",
+                  }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: p.color, boxShadow: `0 0 8px ${p.color}44`, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ color: "rgba(255,255,255,0.7)", fontSize: mobile ? 12 : 13, letterSpacing: 1.5, fontFamily: "Georgia, serif" }}>{p.name}</span>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <span style={{ color: p.color, fontSize: mobile ? 16 : 18, fontFamily: "Georgia, serif", fontWeight: 300 }}>{p.percent}%</span>
+                      <p style={{ color: "rgba(255,255,255,0.15)", fontSize: 9, marginTop: 2 }}>{p.count} {p.count === 1 ? "entry" : "entries"}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
