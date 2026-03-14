@@ -102,6 +102,7 @@ export default function App() {
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [ageGroup, setAgeGroup] = useState(null);
   const [showAgePrompt, setShowAgePrompt] = useState(false);
+  const [futureRevealDate, setFutureRevealDate] = useState(null);
   const promptHistoryRef = useRef({}); // tracks last prompt index per planet
   const [journalText, setJournalText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -207,6 +208,42 @@ export default function App() {
     // Auto-return to solar system so user sees the moon + merge animation
     setJournalOpen(false);
     setSelectedPlanet(null);
+    setFutureRevealDate(null);
+  };
+
+  const saveFutureMessage = async (months) => {
+    if (!journalText.trim() || !selectedPlanet || !user) return;
+    setSaving(true);
+    const revealDate = new Date();
+    revealDate.setMonth(revealDate.getMonth() + months);
+    const { error } = await supabase.from("journal_entries").insert({
+      user_id: user.id, planet_id: "moksha", content: journalText, reveal_at: revealDate.toISOString()
+    });
+    if (error) { alert("Failed to save: " + error.message); setSaving(false); return; }
+    // Update moon count same as normal entry
+    const cur = moonCounts["moksha"] || 0; const next = cur + 1;
+    await supabase.from("moon_progress").update({ moon_count: next >= 10 ? 0 : next }).eq("user_id", user.id).eq("planet_id", "moksha");
+    if (next >= 10) {
+      const w = window.innerWidth; const h = window.innerHeight;
+      const sunCx = w < 768 ? w / 2 : w * 0.55; const sunCy = h / 2;
+      const scale = scaleRef.current; const eR = w < 768 ? 0.65 : 0.4;
+      const mokshaPlanet = PLANETS.find(p => p.id === "moksha");
+      const t = timeRef.current;
+      const pAngle = t * mokshaPlanet.speed; const pOrbit = mokshaPlanet.baseOrbit * scale;
+      const planetX = sunCx + Math.cos(pAngle) * pOrbit; const planetY = sunCy + Math.sin(pAngle) * pOrbit * eR;
+      const pSize = Math.max(mokshaPlanet.baseSize * scale, 10);
+      for (let i = 0; i < 10; i++) {
+        const moonAngle = (i * Math.PI * 2) / 10; const moonDist = pSize + 10 + i * 3;
+        mergingMoons.current.push({ startX: planetX + Math.cos(moonAngle) * moonDist, startY: planetY + Math.sin(moonAngle) * moonDist * 0.6, progress: -i * 0.06 });
+      }
+      const mult = (sunSize / SUN_BASE_SIZE) + 0.1;
+      const { data: pd } = await supabase.from("profiles").select("total_merges").eq("id", user.id).single();
+      await supabase.from("profiles").update({ sun_size: mult, total_merges: (pd?.total_merges || 0) + 1 }).eq("id", user.id);
+      setTimeout(() => setSunSize(SUN_BASE_SIZE * mult), 1200);
+      setMoonCounts((p) => ({ ...p, moksha: 0 }));
+    } else { setMoonCounts((p) => ({ ...p, moksha: next })); }
+    setJournalText(""); setSaving(false); setFutureRevealDate(null);
+    setJournalOpen(false); setSelectedPlanet(null);
   };
 
   const loadPastEntries = async (pid) => {
@@ -749,8 +786,13 @@ export default function App() {
           <div style={{ width: "100%", maxWidth: 400 }}>
             <button onClick={() => {
               if (!ageGroup) {
-                // First time — ask age before journaling
                 setShowAgePrompt(true);
+                return;
+              }
+              // Moksha is free from questions — liberation means no structure
+              if (selectedPlanet.id === "moksha") {
+                setCurrentPrompt("");
+                setJournalOpen(true);
                 return;
               }
               // Pick a rotating prompt from the 224 question bank
@@ -977,12 +1019,20 @@ export default function App() {
               textShadow: "0 2px 4px rgba(0,0,0,0.5)",
             }}>{selectedPlanet.name}</h2>
 
-            {/* Prompt */}
-            <p style={{
-              color: "rgba(160,158,150,0.5)", fontSize: mobile ? 12 : 15,
-              fontStyle: "italic", marginBottom: mobile ? 24 : 36,
-              lineHeight: 1.9, textAlign: "center", maxWidth: 560,
-            }}>"{currentPrompt}"</p>
+            {/* Prompt — Moksha has none, others show rotating question */}
+            {selectedPlanet.id === "moksha" ? (
+              <p style={{
+                color: "rgba(160,158,150,0.4)", fontSize: mobile ? 12 : 15,
+                fontStyle: "italic", marginBottom: mobile ? 24 : 36,
+                lineHeight: 1.9, textAlign: "center", maxWidth: 560,
+              }}>Moksha asks nothing of you. Write freely — to yourself, to the universe, or to who you will become.</p>
+            ) : (
+              <p style={{
+                color: "rgba(160,158,150,0.5)", fontSize: mobile ? 12 : 15,
+                fontStyle: "italic", marginBottom: mobile ? 24 : 36,
+                lineHeight: 1.9, textAlign: "center", maxWidth: 560,
+              }}>"{currentPrompt}"</p>
+            )}
 
             {/* Divider — crack in surface */}
             <div style={{
@@ -990,11 +1040,11 @@ export default function App() {
               background: "linear-gradient(90deg, transparent, rgba(120,118,110,0.3), transparent)",
             }} />
 
-            {/* Textarea — big, etched into the dark moon surface */}
+            {/* Textarea */}
             <textarea
               value={journalText}
               onChange={(e) => setJournalText(e.target.value)}
-              placeholder="Write what your soul needs to say..."
+              placeholder={selectedPlanet.id === "moksha" ? "Write to your future self..." : "Write what your soul needs to say..."}
               style={{
                 width: "100%", height: mobile ? "300px" : "420px",
                 padding: mobile ? "24px" : "36px",
@@ -1021,29 +1071,71 @@ export default function App() {
                 }} />
               ))}
             </div>
-            <p style={{ color: "rgba(150,148,140,0.35)", fontSize: 11, marginBottom: mobile ? 24 : 36 }}>
+            <p style={{ color: "rgba(150,148,140,0.35)", fontSize: 11, marginBottom: mobile ? 20 : 28 }}>
               {moonCounts[selectedPlanet.id] || 0} / 10 moons until merge
             </p>
 
-            {/* Inscribe button */}
-            <button
-              onClick={saveJournalEntry}
-              disabled={saving || !journalText.trim()}
-              style={{
+            {/* Buttons — Moksha gets Inscribe + Send to Future Self, others just Inscribe */}
+            {selectedPlanet.id === "moksha" ? (
+              <div style={{ width: "100%", maxWidth: 400 }}>
+                {/* Inscribe normally */}
+                <button onClick={saveJournalEntry} disabled={saving || !journalText.trim()} style={{
+                  width: "100%", padding: mobile ? "16px" : "20px", border: "none", borderRadius: 16,
+                  background: saving || !journalText.trim() ? "rgba(80,80,75,0.15)" : "linear-gradient(135deg, #ffd700, #f0c800cc)",
+                  color: saving || !journalText.trim() ? "rgba(150,148,140,0.3)" : "#1a1510",
+                  fontSize: mobile ? 15 : 17, fontWeight: 700, cursor: "pointer",
+                  letterSpacing: 2, fontFamily: "Georgia, serif",
+                  boxShadow: saving || !journalText.trim() ? "inset 0 1px 4px rgba(0,0,0,0.2)" : "0 4px 20px rgba(255,215,0,0.2), 0 2px 8px rgba(0,0,0,0.3)",
+                  transition: "all 0.3s ease",
+                }}>{saving ? "Inscribing..." : "✦ Inscribe"}</button>
+
+                {/* Future self time options */}
+                {!futureRevealDate ? (
+                  <button onClick={() => setFutureRevealDate("choosing")} disabled={!journalText.trim()} style={{
+                    width: "100%", padding: mobile ? "14px" : "18px", marginTop: 12,
+                    background: "transparent",
+                    border: `1px solid ${!journalText.trim() ? "rgba(100,100,95,0.1)" : "rgba(255,215,0,0.2)"}`,
+                    borderRadius: 16, cursor: "pointer",
+                    color: !journalText.trim() ? "rgba(150,148,140,0.2)" : "rgba(255,215,0,0.6)",
+                    fontSize: mobile ? 13 : 15, fontFamily: "Georgia, serif", letterSpacing: 1.5,
+                    transition: "all 0.3s ease",
+                  }}>⟳ Send to Future Self</button>
+                ) : (
+                  <div style={{ marginTop: 16 }}>
+                    <p style={{ color: "rgba(200,198,190,0.4)", fontSize: 12, textAlign: "center", marginBottom: 12, letterSpacing: 1 }}>
+                      When should your future self receive this?
+                    </p>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      {[
+                        { label: "1 Month", months: 1 },
+                        { label: "6 Months", months: 6 },
+                        { label: "1 Year", months: 12 },
+                      ].map((opt) => (
+                        <button key={opt.months} onClick={() => saveFutureMessage(opt.months)} disabled={saving} style={{
+                          flex: 1, padding: mobile ? "12px 8px" : "14px",
+                          background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.15)",
+                          borderRadius: 12, cursor: "pointer",
+                          color: "rgba(255,215,0,0.7)", fontSize: mobile ? 12 : 13,
+                          fontFamily: "Georgia, serif", letterSpacing: 1,
+                          transition: "all 0.2s",
+                        }}>{saving ? "..." : opt.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button onClick={saveJournalEntry} disabled={saving || !journalText.trim()} style={{
                 width: "100%", maxWidth: 400,
                 padding: mobile ? "16px" : "20px", border: "none", borderRadius: 16,
-                background: saving || !journalText.trim()
-                  ? "rgba(80,80,75,0.15)"
-                  : `linear-gradient(135deg, ${selectedPlanet.color}, ${selectedPlanet.color}cc)`,
+                background: saving || !journalText.trim() ? "rgba(80,80,75,0.15)" : `linear-gradient(135deg, ${selectedPlanet.color}, ${selectedPlanet.color}cc)`,
                 color: saving || !journalText.trim() ? "rgba(150,148,140,0.3)" : "#1a1510",
                 fontSize: mobile ? 15 : 17, fontWeight: 700, cursor: "pointer",
                 letterSpacing: 2, fontFamily: "Georgia, serif",
-                boxShadow: saving || !journalText.trim()
-                  ? "inset 0 1px 4px rgba(0,0,0,0.2)"
-                  : `0 4px 20px ${selectedPlanet.color}33, 0 2px 8px rgba(0,0,0,0.3)`,
+                boxShadow: saving || !journalText.trim() ? "inset 0 1px 4px rgba(0,0,0,0.2)" : `0 4px 20px ${selectedPlanet.color}33, 0 2px 8px rgba(0,0,0,0.3)`,
                 transition: "all 0.3s ease",
-              }}
-            >{saving ? "Inscribing..." : "✦ Inscribe"}</button>
+              }}>{saving ? "Inscribing..." : "✦ Inscribe"}</button>
+            )}
           </div>
         </div>
       )}
