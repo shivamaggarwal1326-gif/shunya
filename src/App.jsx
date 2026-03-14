@@ -176,7 +176,14 @@ export default function App() {
   const [showDharmaTodos, setShowDharmaTodos] = useState(false);
   const [newTodoText, setNewTodoText] = useState("");
   const [newTodoPriority, setNewTodoPriority] = useState("medium");
-  const [activeComet, setActiveComet] = useState(null); // currently visible comet question
+  const [activeComet, setActiveComet] = useState(null);
+  const [toast, setToast] = useState(null); // { message, type: "error" | "success" }
+
+  // Show toast notification — auto-dismisses
+  const showToast = (message, type = "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  }; // currently visible comet question
   const [mobile, setMobile] = useState(window.innerWidth < 768);
   const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 900 : Math.min(w, window.innerHeight) / 900; };
   const scaleRef = useRef(getScale());
@@ -225,11 +232,19 @@ export default function App() {
   }, []);
 
   const loadUserData = async (authUser) => {
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", authUser.id).single();
-    if (profile) { setAnonymousName(profile.anonymous_name); setSunSize(SUN_BASE_SIZE * profile.sun_size); setStarsCollected(profile.stars_collected); starsRef.current = profile.stars_collected; if (profile.age_group) setAgeGroup(profile.age_group); }
-    const { data: moons } = await supabase.from("moon_progress").select("*").eq("user_id", authUser.id);
-    if (moons) { const c = {}; moons.forEach((m) => (c[m.planet_id] = m.moon_count)); setMoonCounts(c); }
-    setUser(authUser); setCheckingAuth(false);
+    try {
+      const { data: profile, error: profileErr } = await supabase.from("profiles").select("*").eq("id", authUser.id).single();
+      if (profileErr) throw profileErr;
+      if (profile) { setAnonymousName(profile.anonymous_name); setSunSize(SUN_BASE_SIZE * profile.sun_size); setStarsCollected(profile.stars_collected); starsRef.current = profile.stars_collected; if (profile.age_group) setAgeGroup(profile.age_group); }
+      const { data: moons, error: moonErr } = await supabase.from("moon_progress").select("*").eq("user_id", authUser.id);
+      if (moonErr) throw moonErr;
+      if (moons) { const c = {}; moons.forEach((m) => (c[m.planet_id] = m.moon_count)); setMoonCounts(c); }
+      setUser(authUser); setCheckingAuth(false);
+    } catch (err) {
+      console.error("Failed to load user data:", err);
+      showToast("Something went wrong loading your universe. Try refreshing.");
+      setCheckingAuth(false);
+    }
   };
 
   const handleAuth = (u, n, suggestedPlanetId) => {
@@ -252,10 +267,11 @@ export default function App() {
   const saveJournalEntry = async () => {
     if (!journalText.trim() || !selectedPlanet || !user) return;
     setSaving(true);
-    const { error } = await supabase.from("journal_entries").insert({ user_id: user.id, planet_id: selectedPlanet.id, content: journalText });
-    if (error) { alert("Failed to save: " + error.message); setSaving(false); return; }
-    const cur = moonCounts[selectedPlanet.id] || 0; const next = cur + 1;
-    await supabase.from("moon_progress").update({ moon_count: next >= 10 ? 0 : next }).eq("user_id", user.id).eq("planet_id", selectedPlanet.id);
+    try {
+      const { error } = await supabase.from("journal_entries").insert({ user_id: user.id, planet_id: selectedPlanet.id, content: journalText });
+      if (error) throw error;
+      const cur = moonCounts[selectedPlanet.id] || 0; const next = cur + 1;
+      await supabase.from("moon_progress").update({ moon_count: next >= 10 ? 0 : next }).eq("user_id", user.id).eq("planet_id", selectedPlanet.id);
     if (next >= 10) {
       // Spawn merge animation — moons fly toward the sun
       const w = window.innerWidth; const h = window.innerHeight;
@@ -291,26 +307,27 @@ export default function App() {
       setMoonCounts((p) => ({ ...p, [selectedPlanet.id]: 0 }));
     } else { setMoonCounts((p) => ({ ...p, [selectedPlanet.id]: next })); }
     setJournalText(""); setSaving(false);
-    // Auto-return to solar system so user sees the moon + merge animation
     setJournalOpen(false);
     setSelectedPlanet(null);
     setFutureRevealDate(null);
+    } catch (err) {
+      console.error("Failed to save entry:", err);
+      showToast("Could not save your entry. Check your connection and try again.");
+      setSaving(false);
+    }
   };
 
   const saveFutureMessage = async (months) => {
     if (!journalText.trim() || !selectedPlanet || !user) return;
     setSaving(true);
-
-    // Launch rocket animation first
     setRocketLaunching(true);
-
-    // Save in background while rocket flies
-    const revealDate = new Date();
-    revealDate.setMonth(revealDate.getMonth() + months);
-    const { error } = await supabase.from("journal_entries").insert({
-      user_id: user.id, planet_id: "moksha", content: journalText, reveal_at: revealDate.toISOString()
-    });
-    if (error) { alert("Failed to save: " + error.message); setSaving(false); setRocketLaunching(false); return; }
+    try {
+      const revealDate = new Date();
+      revealDate.setMonth(revealDate.getMonth() + months);
+      const { error } = await supabase.from("journal_entries").insert({
+        user_id: user.id, planet_id: "moksha", content: journalText, reveal_at: revealDate.toISOString()
+      });
+      if (error) throw error;
 
     const cur = moonCounts["moksha"] || 0; const next = cur + 1;
     await supabase.from("moon_progress").update({ moon_count: next >= 10 ? 0 : next }).eq("user_id", user.id).eq("planet_id", "moksha");
@@ -334,17 +351,24 @@ export default function App() {
       setMoonCounts((p) => ({ ...p, moksha: 0 }));
     } else { setMoonCounts((p) => ({ ...p, moksha: next })); }
 
-    // Wait for rocket animation to finish, then exit
     setTimeout(() => {
       setRocketLaunching(false);
       setJournalText(""); setSaving(false); setFutureRevealDate(null);
       setJournalOpen(false); setSelectedPlanet(null);
     }, 2800);
+    } catch (err) {
+      console.error("Failed to send future message:", err);
+      showToast("Could not send your message to the future. Try again.");
+      setSaving(false); setRocketLaunching(false);
+    }
   };
 
   const loadPastEntries = async (pid) => {
-    const { data } = await supabase.from("journal_entries").select("*").eq("user_id", user.id).eq("planet_id", pid).order("created_at", { ascending: false });
-    setPastEntries(data || []); setShowPastEntries(true);
+    try {
+      const { data, error } = await supabase.from("journal_entries").select("*").eq("user_id", user.id).eq("planet_id", pid).order("created_at", { ascending: false });
+      if (error) throw error;
+      setPastEntries(data || []); setShowPastEntries(true);
+    } catch (err) { console.error("Failed to load entries:", err); showToast("Could not load past entries."); }
   };
 
   const collectStar = async () => {
@@ -353,36 +377,45 @@ export default function App() {
     setStarsCollected(n);
     setCursorBlink(true);
     setTimeout(() => setCursorBlink(false), 400);
-    await supabase.from("profiles").update({ stars_collected: n }).eq("id", user.id);
+    try { await supabase.from("profiles").update({ stars_collected: n }).eq("id", user.id); }
+    catch (err) { console.error("Star save failed:", err); }
   };
 
   // ─── Dharma To-Do Functions ───
   const loadDharmaTodos = async () => {
-    const { data } = await supabase.from("dharma_todos").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setDharmaTodos(data || []);
-    setShowDharmaTodos(true);
+    try {
+      const { data, error } = await supabase.from("dharma_todos").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      if (error) throw error;
+      setDharmaTodos(data || []); setShowDharmaTodos(true);
+    } catch (err) { console.error("Failed to load todos:", err); showToast("Could not load your commitments."); }
   };
 
   const addDharmaTodo = async () => {
     if (!newTodoText.trim() || !user) return;
-    const { data, error } = await supabase.from("dharma_todos").insert({
-      user_id: user.id, content: newTodoText, priority: newTodoPriority,
-    }).select().single();
-    if (error) { alert("Failed: " + error.message); return; }
-    setDharmaTodos((prev) => [data, ...prev]);
-    setNewTodoText(""); setNewTodoPriority("medium");
+    try {
+      const { data, error } = await supabase.from("dharma_todos").insert({
+        user_id: user.id, content: newTodoText, priority: newTodoPriority,
+      }).select().single();
+      if (error) throw error;
+      setDharmaTodos((prev) => [data, ...prev]);
+      setNewTodoText(""); setNewTodoPriority("medium");
+    } catch (err) { console.error("Failed to add todo:", err); showToast("Could not save your commitment."); }
   };
 
   const toggleDharmaTodo = async (id, completed) => {
-    await supabase.from("dharma_todos").update({
-      completed: !completed, completed_at: !completed ? new Date().toISOString() : null
-    }).eq("id", id);
-    setDharmaTodos((prev) => prev.map((t) => t.id === id ? { ...t, completed: !completed, completed_at: !completed ? new Date().toISOString() : null } : t));
+    try {
+      await supabase.from("dharma_todos").update({
+        completed: !completed, completed_at: !completed ? new Date().toISOString() : null
+      }).eq("id", id);
+      setDharmaTodos((prev) => prev.map((t) => t.id === id ? { ...t, completed: !completed, completed_at: !completed ? new Date().toISOString() : null } : t));
+    } catch (err) { console.error("Toggle failed:", err); }
   };
 
   const deleteDharmaTodo = async (id) => {
-    await supabase.from("dharma_todos").delete().eq("id", id);
-    setDharmaTodos((prev) => prev.filter((t) => t.id !== id));
+    try {
+      await supabase.from("dharma_todos").delete().eq("id", id);
+      setDharmaTodos((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) { console.error("Delete failed:", err); showToast("Could not delete commitment."); }
   };
 
   // ─── Canvas Animation ───
@@ -1872,11 +1905,32 @@ export default function App() {
         </div>
       )}
 
+      {/* ═══════════════════════════════════════ */}
+      {/* TOAST NOTIFICATION                        */}
+      {/* ═══════════════════════════════════════ */}
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: mobile ? 24 : 36, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, animation: "toastIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+          padding: mobile ? "14px 24px" : "16px 32px",
+          background: toast.type === "error" ? "rgba(255,60,60,0.15)" : "rgba(78,205,196,0.15)",
+          border: `1px solid ${toast.type === "error" ? "rgba(255,60,60,0.3)" : "rgba(78,205,196,0.3)"}`,
+          borderRadius: 16, backdropFilter: "blur(20px)",
+          color: toast.type === "error" ? "rgba(255,150,150,0.9)" : "rgba(150,255,230,0.9)",
+          fontSize: mobile ? 12 : 13, fontFamily: "Georgia, serif",
+          letterSpacing: 0.5, maxWidth: mobile ? "90vw" : 440, textAlign: "center",
+        }}>{toast.message}</div>
+      )}
+
       {/* ─── CSS ─── */}
       <style>{`
         @keyframes overlayIn {
           from { opacity: 0; transform: scale(0.92) translateY(10px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
         @keyframes rocketLaunch {
           0% { transform: translateY(0); opacity: 1; }
