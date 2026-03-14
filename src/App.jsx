@@ -115,6 +115,10 @@ export default function App() {
   const [pastEntries, setPastEntries] = useState([]);
   const [showPastEntries, setShowPastEntries] = useState(false);
   const [selectedMoonEntry, setSelectedMoonEntry] = useState(null);
+  const [dharmaTodos, setDharmaTodos] = useState([]);
+  const [showDharmaTodos, setShowDharmaTodos] = useState(false);
+  const [newTodoText, setNewTodoText] = useState("");
+  const [newTodoPriority, setNewTodoPriority] = useState("medium");
   const [mobile, setMobile] = useState(window.innerWidth < 768);
   const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 900 : Math.min(w, window.innerHeight) / 900; };
   const scaleRef = useRef(getScale());
@@ -270,6 +274,35 @@ export default function App() {
     setCursorBlink(true);
     setTimeout(() => setCursorBlink(false), 400);
     await supabase.from("profiles").update({ stars_collected: n }).eq("id", user.id);
+  };
+
+  // ─── Dharma To-Do Functions ───
+  const loadDharmaTodos = async () => {
+    const { data } = await supabase.from("dharma_todos").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setDharmaTodos(data || []);
+    setShowDharmaTodos(true);
+  };
+
+  const addDharmaTodo = async () => {
+    if (!newTodoText.trim() || !user) return;
+    const { data, error } = await supabase.from("dharma_todos").insert({
+      user_id: user.id, content: newTodoText, priority: newTodoPriority,
+    }).select().single();
+    if (error) { alert("Failed: " + error.message); return; }
+    setDharmaTodos((prev) => [data, ...prev]);
+    setNewTodoText(""); setNewTodoPriority("medium");
+  };
+
+  const toggleDharmaTodo = async (id, completed) => {
+    await supabase.from("dharma_todos").update({
+      completed: !completed, completed_at: !completed ? new Date().toISOString() : null
+    }).eq("id", id);
+    setDharmaTodos((prev) => prev.map((t) => t.id === id ? { ...t, completed: !completed, completed_at: !completed ? new Date().toISOString() : null } : t));
+  };
+
+  const deleteDharmaTodo = async (id) => {
+    await supabase.from("dharma_todos").delete().eq("id", id);
+    setDharmaTodos((prev) => prev.filter((t) => t.id !== id));
   };
 
   // ─── Canvas Animation ───
@@ -681,7 +714,7 @@ export default function App() {
   if (!user) return <AuthPage onAuth={handleAuth} />;
 
   // ─── Overlay: determines what's shown over the solar system ───
-  const hasOverlay = selectedPlanet !== null || showAgePrompt;
+  const hasOverlay = selectedPlanet !== null || showAgePrompt || showDharmaTodos;
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: "#000", fontFamily: "Georgia, serif", cursor: "none" }}>
@@ -872,7 +905,7 @@ export default function App() {
                   {moonCounts[selectedPlanet.id] || 0} / 10 moons · Click a moon to revisit
                 </p>
 
-                {/* Buttons */}
+                {/* Buttons — Dharma gets Journal + Commit, others just Journal */}
                 <div style={{ maxWidth: 380 }}>
                   <button onClick={() => {
                     if (!ageGroup) { setShowAgePrompt(true); return; }
@@ -891,7 +924,165 @@ export default function App() {
                     letterSpacing: 1, fontFamily: "Georgia, serif",
                     boxShadow: `0 4px 24px ${selectedPlanet.color}44`,
                   }}>✦ Start Journaling</button>
+
+                  {/* Dharma-only: Commit button for to-do list */}
+                  {selectedPlanet.id === "dharma" && (
+                    <button onClick={loadDharmaTodos} style={{
+                      width: "100%", padding: mobile ? "13px" : "16px", marginTop: 12,
+                      background: "transparent",
+                      border: `1px solid ${selectedPlanet.color}44`,
+                      borderRadius: 14, cursor: "pointer",
+                      color: selectedPlanet.color, fontSize: mobile ? 13 : 14,
+                      fontFamily: "Georgia, serif", letterSpacing: 1.5,
+                      transition: "all 0.3s",
+                    }}>⚡ Commit — Purpose To-Do</button>
+                  )}
                 </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════ */}
+      {/* DHARMA COMMIT — Purpose To-Do List        */}
+      {/* ═══════════════════════════════════════ */}
+      {showDharmaTodos && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 22,
+          display: "flex", flexDirection: "column", alignItems: "center",
+          animation: "overlayIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+          overflowY: "auto", padding: mobile ? "60px 20px 40px" : "60px 40px",
+        }}>
+          {/* Close */}
+          <button onClick={() => setShowDharmaTodos(false)} style={{
+            position: "absolute", top: mobile ? 16 : 28, left: mobile ? 16 : 28,
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: 10, padding: "8px 16px", color: "rgba(255,255,255,0.5)",
+            fontSize: 13, cursor: "pointer", fontFamily: "Georgia, serif", letterSpacing: 1,
+          }}>← Back</button>
+
+          <div style={{ width: "100%", maxWidth: 560 }}>
+            {/* Header */}
+            <div style={{ textAlign: "center", marginBottom: mobile ? 24 : 36 }}>
+              <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#f093fb", margin: "0 auto 14px", boxShadow: "0 0 10px rgba(240,147,251,0.4)" }} />
+              <h2 style={{ color: "#f093fb", fontSize: mobile ? 22 : 30, letterSpacing: mobile ? 4 : 8, fontWeight: 300, marginBottom: 6, fontFamily: "Georgia, serif" }}>COMMIT</h2>
+              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: mobile ? 11 : 13, letterSpacing: 2 }}>What are you committing to your purpose?</p>
+            </div>
+
+            {/* Add new to-do */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                <input
+                  value={newTodoText}
+                  onChange={(e) => setNewTodoText(e.target.value)}
+                  placeholder="What will you commit to?"
+                  onKeyDown={(e) => { if (e.key === "Enter") addDharmaTodo(); }}
+                  style={{
+                    flex: 1, padding: mobile ? "14px 16px" : "16px 20px",
+                    background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 14, color: "rgba(255,255,255,0.85)",
+                    fontSize: mobile ? 14 : 16, outline: "none", fontFamily: "Georgia, serif",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              {/* Priority selector + Add button */}
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {[
+                  { label: "Low", value: "low", color: "rgba(116,185,255,0.7)" },
+                  { label: "Medium", value: "medium", color: "rgba(255,215,0,0.7)" },
+                  { label: "High", value: "high", color: "rgba(255,107,107,0.7)" },
+                ].map((p) => (
+                  <button key={p.value} onClick={() => setNewTodoPriority(p.value)} style={{
+                    padding: mobile ? "8px 14px" : "8px 18px",
+                    background: newTodoPriority === p.value ? "rgba(255,255,255,0.08)" : "transparent",
+                    border: `1px solid ${newTodoPriority === p.value ? p.color : "rgba(255,255,255,0.06)"}`,
+                    borderRadius: 10, cursor: "pointer",
+                    color: newTodoPriority === p.value ? p.color : "rgba(255,255,255,0.25)",
+                    fontSize: mobile ? 11 : 12, fontFamily: "Georgia, serif", letterSpacing: 1,
+                    transition: "all 0.2s",
+                  }}>{p.label}</button>
+                ))}
+                <button onClick={addDharmaTodo} disabled={!newTodoText.trim()} style={{
+                  marginLeft: "auto", padding: mobile ? "8px 20px" : "8px 24px",
+                  background: !newTodoText.trim() ? "rgba(255,255,255,0.04)" : "linear-gradient(135deg, #f093fb, #f093fbcc)",
+                  border: "none", borderRadius: 10, cursor: "pointer",
+                  color: !newTodoText.trim() ? "rgba(255,255,255,0.2)" : "#000",
+                  fontSize: mobile ? 12 : 13, fontWeight: 700, fontFamily: "Georgia, serif", letterSpacing: 1,
+                  transition: "all 0.3s",
+                }}>+ Add</button>
+              </div>
+            </div>
+
+            {/* To-do list */}
+            {dharmaTodos.length === 0 ? (
+              <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 14, textAlign: "center", marginTop: 40 }}>
+                No commitments yet. What is your purpose asking of you?
+              </p>
+            ) : (
+              <div>
+                {/* Active todos */}
+                {dharmaTodos.filter(t => !t.completed).length > 0 && (
+                  <div style={{ marginBottom: 24 }}>
+                    <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 12 }}>Active</p>
+                    {dharmaTodos.filter(t => !t.completed).map((todo) => (
+                      <div key={todo.id} style={{
+                        display: "flex", alignItems: "flex-start", gap: 12,
+                        padding: mobile ? "14px 16px" : "16px 20px",
+                        background: "rgba(255,255,255,0.025)",
+                        border: "1px solid rgba(255,255,255,0.05)",
+                        borderRadius: 14, marginBottom: 8,
+                        borderLeft: `3px solid ${todo.priority === "high" ? "rgba(255,107,107,0.6)" : todo.priority === "medium" ? "rgba(255,215,0,0.5)" : "rgba(116,185,255,0.4)"}`,
+                      }}>
+                        {/* Checkbox */}
+                        <div onClick={() => toggleDharmaTodo(todo.id, todo.completed)} style={{
+                          width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 2,
+                          border: "1.5px solid rgba(255,255,255,0.15)", cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "all 0.2s",
+                        }} />
+                        {/* Content */}
+                        <div style={{ flex: 1 }}>
+                          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: mobile ? 14 : 15, lineHeight: 1.6, fontFamily: "Georgia, serif" }}>{todo.content}</p>
+                          <p style={{ color: "rgba(255,255,255,0.15)", fontSize: 10, marginTop: 4 }}>
+                            {todo.priority.toUpperCase()} · {new Date(todo.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                          </p>
+                        </div>
+                        {/* Delete */}
+                        <button onClick={() => deleteDharmaTodo(todo.id)} style={{
+                          background: "none", border: "none", color: "rgba(255,255,255,0.12)",
+                          cursor: "pointer", fontSize: 14, flexShrink: 0,
+                        }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Completed todos */}
+                {dharmaTodos.filter(t => t.completed).length > 0 && (
+                  <div>
+                    <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 12 }}>Fulfilled</p>
+                    {dharmaTodos.filter(t => t.completed).map((todo) => (
+                      <div key={todo.id} style={{
+                        display: "flex", alignItems: "flex-start", gap: 12,
+                        padding: mobile ? "12px 16px" : "14px 20px",
+                        background: "rgba(255,255,255,0.015)",
+                        border: "1px solid rgba(255,255,255,0.03)",
+                        borderRadius: 14, marginBottom: 6,
+                        opacity: 0.5,
+                      }}>
+                        <div onClick={() => toggleDharmaTodo(todo.id, todo.completed)} style={{
+                          width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 2,
+                          background: "rgba(240,147,251,0.3)", border: "1.5px solid rgba(240,147,251,0.4)",
+                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                          color: "#f093fb", fontSize: 12,
+                        }}>✓</div>
+                        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: mobile ? 13 : 14, lineHeight: 1.6, fontFamily: "Georgia, serif", textDecoration: "line-through" }}>{todo.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
