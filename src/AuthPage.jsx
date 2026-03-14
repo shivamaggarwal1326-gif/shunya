@@ -10,8 +10,22 @@ export default function AuthPage({ onAuth, onSignupStart }) {
   const [error, setError] = useState("");
   const [revealName, setRevealName] = useState(null);
   const [authUser, setAuthUser] = useState(null);
-  const [onboardingStep, setOnboardingStep] = useState(0); // 0 = name reveal, 1-4 = onboarding
+  const [onboardingStep, setOnboardingStep] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showMoodSelector, setShowMoodSelector] = useState(false);
+  const [selectedMood, setSelectedMood] = useState(null);
+
+  const moods = [
+    { label: "Lost", sub: "not sure where life is going", planet: "dharma", planetName: "DHARMA", planetColor: "#f093fb", message: "Dharma is waiting to help you find your path" },
+    { label: "Heartbroken", sub: "aching, missing someone", planet: "prema", planetName: "PREMA", planetColor: "#e8a0bf", message: "Prema holds space for your heart" },
+    { label: "Anxious", sub: "worried about what is coming", planet: "kaal", planetName: "KAAL", planetColor: "#a78bfa", message: "Kaal is ready to sit with you in the uncertainty" },
+    { label: "Empty", sub: "disconnected, running on autopilot", planet: "pranaa", planetName: "PRANAA", planetColor: "#4ecdc4", message: "Pranaa wants to help you feel alive again" },
+    { label: "Questioning", sub: "who am I, really", planet: "aatma", planetName: "AATMA", planetColor: "#e07840", message: "Aatma has been waiting for you to ask" },
+    { label: "Stuck", sub: "repeating the same patterns", planet: "karma", planetName: "KARMA", planetColor: "#ff6b6b", message: "Karma is ready to break the cycle with you" },
+    { label: "Unseen", sub: "hiding behind a version of myself", planet: "maya", planetName: "MAYA", planetColor: "#fd79a8", message: "Maya will help you see through the illusion" },
+    { label: "Ready", sub: "ready to let something go", planet: "moksha", planetName: "MOKSHA", planetColor: "#ffd700", message: "Moksha has been saving a space just for you" },
+    { label: "Curious", sub: "just here to explore", planet: null, planetName: null, planetColor: "#f5a623", message: "Your universe is waiting — explore freely" },
+  ];
 
   const handleSignup = async () => {
     setLoading(true);
@@ -133,7 +147,7 @@ export default function AuthPage({ onAuth, onSignupStart }) {
           )}
 
           <button onClick={() => {
-            if (isLast) { onAuth(authUser, revealName); }
+            if (isLast) { setShowMoodSelector(true); setShowOnboarding(false); }
             else { setOnboardingStep((s) => s + 1); }
           }} style={{
             padding: "14px 36px",
@@ -146,6 +160,100 @@ export default function AuthPage({ onAuth, onSignupStart }) {
             boxShadow: isLast ? "0 4px 20px rgba(245,166,35,0.3)" : "none",
           }}>{isLast ? "✦ Enter Your Universe" : "Next"}</button>
         </div>
+
+        <style>{`
+          @keyframes onboardFadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // ─── Mood Selector — "How are you feeling?" ───
+  if (showMoodSelector && revealName) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: "radial-gradient(ellipse at center, #0a0a1a 0%, #000000 70%)",
+        display: "flex", flexDirection: "column", alignItems: "center",
+        fontFamily: "'Georgia', serif", position: "relative",
+        padding: mobile ? "40px 20px" : "50px 40px",
+        overflowY: "auto",
+      }}>
+        {/* Skip */}
+        <button onClick={() => onAuth(authUser, revealName)} style={{
+          position: "absolute", top: mobile ? 20 : 32, right: mobile ? 20 : 32,
+          background: "none", border: "none", color: "rgba(255,255,255,0.25)",
+          fontSize: 12, cursor: "pointer", letterSpacing: 2, fontFamily: "Georgia, serif",
+        }}>SKIP</button>
+
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: mobile ? 24 : 36, marginTop: mobile ? 20 : 0 }}>
+          <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", marginBottom: 16 }}>
+            Now that you know what Shunya is
+          </p>
+          <h1 style={{ color: "rgba(255,255,255,0.85)", fontSize: mobile ? 22 : 32, fontWeight: 300, letterSpacing: mobile ? 2 : 4, marginBottom: 10 }}>
+            How are you feeling right now?
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: mobile ? 12 : 14, lineHeight: 1.7 }}>
+            Let us take the first step together.
+          </p>
+        </div>
+
+        {/* Selected mood result */}
+        {selectedMood ? (
+          <div style={{
+            animation: "onboardFadeIn 0.5s ease",
+            textAlign: "center", maxWidth: 440, marginTop: mobile ? 20 : 40,
+          }}>
+            {/* Planet color dot */}
+            <div style={{
+              width: 16, height: 16, borderRadius: "50%", margin: "0 auto 20px",
+              background: selectedMood.planetColor, boxShadow: `0 0 20px ${selectedMood.planetColor}66`,
+            }} />
+            <p style={{
+              color: selectedMood.planetColor, fontSize: mobile ? 16 : 20,
+              fontStyle: "italic", lineHeight: 1.8, marginBottom: 28,
+              fontFamily: "Georgia, serif",
+            }}>{selectedMood.message}</p>
+
+            <button onClick={() => {
+              onAuth(authUser, revealName, selectedMood.planet);
+            }} style={{
+              padding: mobile ? "16px 40px" : "18px 48px",
+              background: `linear-gradient(135deg, ${selectedMood.planetColor}, ${selectedMood.planetColor}cc)`,
+              border: "none", borderRadius: 14, cursor: "pointer",
+              color: "#000", fontSize: mobile ? 15 : 16, fontWeight: 700,
+              fontFamily: "Georgia, serif", letterSpacing: 1.5,
+              boxShadow: `0 4px 24px ${selectedMood.planetColor}44`,
+            }}>{selectedMood.planetName ? `✦ Go to ${selectedMood.planetName}` : "✦ Enter Your Universe"}</button>
+          </div>
+        ) : (
+          /* Mood grid */
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: mobile ? "repeat(3, 1fr)" : "repeat(3, 1fr)",
+            gap: mobile ? 10 : 14,
+            maxWidth: 500, width: "100%",
+          }}>
+            {moods.map((mood) => (
+              <button key={mood.label} onClick={() => setSelectedMood(mood)} style={{
+                padding: mobile ? "18px 8px" : "22px 12px",
+                background: "rgba(255,255,255,0.025)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: 16, cursor: "pointer",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                transition: "all 0.25s ease",
+              }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: mood.planetColor, boxShadow: `0 0 8px ${mood.planetColor}44` }} />
+                <span style={{ color: "rgba(255,255,255,0.75)", fontSize: mobile ? 13 : 14, fontFamily: "Georgia, serif", letterSpacing: 1 }}>{mood.label}</span>
+                <span style={{ color: "rgba(255,255,255,0.2)", fontSize: mobile ? 9 : 10, lineHeight: 1.4, textAlign: "center" }}>{mood.sub}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <style>{`
           @keyframes onboardFadeIn {
