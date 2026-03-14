@@ -623,7 +623,7 @@ export default function App() {
   if (!user) return <AuthPage onAuth={handleAuth} />;
 
   // ─── Overlay: determines what's shown over the solar system ───
-  const hasOverlay = selectedPlanet !== null;
+  const hasOverlay = selectedPlanet !== null || showAgePrompt;
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: "#000", fontFamily: "Georgia, serif", cursor: "none" }}>
@@ -685,7 +685,7 @@ export default function App() {
       {/* ═══════════════════════════════════════════════════════ */}
       {/* PLANET DESCRIPTION — Full screen overlay (UPDATE 1)   */}
       {/* ═══════════════════════════════════════════════════════ */}
-      {selectedPlanet && !journalOpen && !showPastEntries && (
+      {selectedPlanet && !journalOpen && !showPastEntries && !showAgePrompt && (
         <div style={{
           position: "absolute", inset: 0, zIndex: 20,
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -779,49 +779,64 @@ export default function App() {
       )}
 
       {/* ═══════════════════════════════════════ */}
-      {/* AGE PROMPT — one-time subtle question     */}
+      {/* LIFE STAGE — one-time cosmic question     */}
       {/* ═══════════════════════════════════════ */}
       {showAgePrompt && selectedPlanet && (
         <div style={{
           position: "absolute", inset: 0, zIndex: 25,
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          animation: "overlayIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+          animation: "overlayIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
         }}>
-          <div style={{ maxWidth: 420, textAlign: "center", padding: mobile ? "0 24px" : 0 }}>
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, letterSpacing: 3, textTransform: "uppercase", marginBottom: 20 }}>Before we begin</p>
-            <h2 style={{ color: "rgba(255,255,255,0.85)", fontSize: mobile ? 20 : 26, fontWeight: 300, letterSpacing: 2, marginBottom: 12, fontFamily: "Georgia, serif" }}>
-              How old are you?
+          {/* Close */}
+          <button onClick={() => { setShowAgePrompt(false); }} style={{
+            position: "absolute", top: mobile ? 20 : 30, right: mobile ? 20 : 30,
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: "50%", width: 40, height: 40, color: "rgba(255,255,255,0.5)",
+            fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>✕</button>
+
+          <div style={{ maxWidth: 440, textAlign: "center", padding: mobile ? "0 28px" : 0 }}>
+            {/* Small planet dot */}
+            <div style={{
+              width: 12, height: 12, borderRadius: "50%", margin: "0 auto 20px",
+              background: selectedPlanet.color, boxShadow: `0 0 10px ${selectedPlanet.color}44`,
+            }} />
+
+            <h2 style={{ color: "rgba(255,255,255,0.85)", fontSize: mobile ? 22 : 28, fontWeight: 300, letterSpacing: mobile ? 3 : 5, marginBottom: 12, fontFamily: "Georgia, serif" }}>
+              Where are you in your journey?
             </h2>
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: mobile ? 12 : 14, marginBottom: 36, lineHeight: 1.7 }}>
-              Shunya shapes its questions to where you are in life. This is asked only once and stays private forever.
+            <p style={{ color: "rgba(255,255,255,0.25)", fontSize: mobile ? 11 : 13, marginBottom: mobile ? 32 : 44, lineHeight: 1.7 }}>
+              Shunya speaks differently to different seasons of life. Choose once — it stays private forever.
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
-                { label: "16 – 22", value: "16-22" },
-                { label: "23 – 30", value: "23-30" },
-                { label: "31 – 45", value: "31-45" },
-                { label: "45+", value: "45+" },
+                { label: "The Awakening", sub: "16 – 22", value: "16-22" },
+                { label: "The Search", sub: "23 – 30", value: "23-30" },
+                { label: "The Becoming", sub: "31 – 45", value: "31-45" },
+                { label: "The Knowing", sub: "45+", value: "45+" },
               ].map((opt) => (
                 <button key={opt.value} onClick={async () => {
                   setAgeGroup(opt.value);
                   setShowAgePrompt(false);
-                  // Save to database
                   await supabase.from("profiles").update({ age_group: opt.value }).eq("id", user.id);
-                  // Now open journal with age-targeted prompt
                   const prompts = getQuestionsForPlanet(selectedPlanet.id, opt.value);
                   const idx = Math.floor(Math.random() * prompts.length);
                   promptHistoryRef.current[selectedPlanet.id] = idx;
                   setCurrentPrompt(prompts[idx]);
                   setJournalOpen(true);
                 }} style={{
-                  padding: mobile ? "14px" : "16px",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: 14, color: "rgba(255,255,255,0.7)",
-                  fontSize: mobile ? 15 : 16, cursor: "pointer",
-                  fontFamily: "Georgia, serif", letterSpacing: 2,
-                  transition: "all 0.2s",
-                }}>{opt.label}</button>
+                  padding: mobile ? "16px 20px" : "18px 24px",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 16, cursor: "pointer",
+                  fontFamily: "Georgia, serif",
+                  transition: "all 0.25s ease",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                }}>
+                  <span style={{ color: "rgba(255,255,255,0.75)", fontSize: mobile ? 15 : 17, letterSpacing: 1.5 }}>{opt.label}</span>
+                  <span style={{ color: "rgba(255,255,255,0.25)", fontSize: mobile ? 11 : 12, letterSpacing: 1 }}>{opt.sub}</span>
+                </button>
               ))}
             </div>
           </div>
