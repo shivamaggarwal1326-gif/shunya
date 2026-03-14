@@ -713,69 +713,110 @@ export default function App() {
       {selectedPlanet && journalOpen && (
         <div style={{
           position: "absolute", inset: 0, zIndex: 20,
-          display: "flex", flexDirection: "column", alignItems: "center",
-          animation: "overlayIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+          display: "flex", justifyContent: "center",
+          animation: "overlayIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
           overflowY: "auto",
         }}>
-          {/* Moon surface background layer */}
+          {/* Moon surface background — off-white rocky terrain */}
           <div style={{
-            position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse at 50% 30%, rgba(60,58,68,0.95) 0%, rgba(35,33,42,0.97) 40%, rgba(18,16,24,0.98) 100%)",
-            zIndex: -1,
-          }} />
-          {/* Subtle crater texture dots */}
-          <div style={{
-            position: "absolute", inset: 0, opacity: 0.04, zIndex: -1,
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)",
-            backgroundSize: "30px 30px",
+            position: "absolute", inset: 0, zIndex: -2,
+            background: "radial-gradient(ellipse at 50% 40%, #d4cfc6 0%, #bfb9ad 25%, #a8a298 50%, #8a847a 75%, #3a3632 100%)",
           }} />
 
-          {/* Back button */}
-          <button onClick={() => setJournalOpen(false)} style={{
-            position: "absolute", top: mobile ? 20 : 30, left: mobile ? 20 : 30,
-            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 10, padding: "8px 16px",
-            color: "rgba(255,255,255,0.5)", fontSize: 13, cursor: "pointer",
-            letterSpacing: 1, fontFamily: "Georgia, serif",
-          }}>← Back</button>
-
-          {/* Content area */}
+          {/* Crater layer 1 — large subtle craters */}
           <div style={{
-            width: "100%", maxWidth: 620, padding: mobile ? "80px 24px 40px" : "100px 40px 60px",
+            position: "absolute", inset: 0, zIndex: -1, opacity: 0.12,
+            backgroundImage: `
+              radial-gradient(circle at 15% 20%, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 40%, transparent 50%),
+              radial-gradient(circle at 75% 15%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.08) 35%, transparent 45%),
+              radial-gradient(circle at 45% 80%, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.06) 30%, transparent 40%),
+              radial-gradient(circle at 85% 65%, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 25%, transparent 35%),
+              radial-gradient(circle at 25% 60%, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 20%, transparent 30%),
+              radial-gradient(circle at 60% 45%, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.07) 28%, transparent 38%)
+            `,
+            backgroundSize: "300px 300px, 250px 250px, 200px 200px, 180px 180px, 150px 150px, 220px 220px",
+          }} />
+
+          {/* Crater layer 2 — small rocky dots */}
+          <div style={{
+            position: "absolute", inset: 0, zIndex: -1, opacity: 0.06,
+            backgroundImage: `
+              radial-gradient(circle, rgba(0,0,0,0.5) 1px, transparent 1px),
+              radial-gradient(circle, rgba(0,0,0,0.3) 2px, transparent 2px)
+            `,
+            backgroundSize: "24px 24px, 60px 60px",
+            backgroundPosition: "0 0, 12px 12px",
+          }} />
+
+          {/* Surface highlight — light from top-right like sun illumination */}
+          <div style={{
+            position: "absolute", inset: 0, zIndex: -1,
+            background: "linear-gradient(135deg, rgba(255,255,245,0.15) 0%, transparent 40%, rgba(0,0,0,0.1) 100%)",
+          }} />
+
+          {/* Content card — centered, larger */}
+          <div style={{
+            width: "100%", maxWidth: mobile ? "100%" : 760,
+            minHeight: "100vh",
+            padding: mobile ? "70px 24px 40px" : "80px 60px 60px",
             display: "flex", flexDirection: "column", alignItems: "center",
+            position: "relative",
           }}>
-            {/* Planet indicator */}
+            {/* Back button */}
+            <button onClick={() => setJournalOpen(false)} style={{
+              position: "fixed", top: mobile ? 16 : 28, left: mobile ? 16 : 28,
+              background: "rgba(60,55,50,0.6)", border: "1px solid rgba(100,95,85,0.3)",
+              borderRadius: 10, padding: "8px 18px",
+              color: "rgba(220,215,200,0.7)", fontSize: 13, cursor: "pointer",
+              letterSpacing: 1, fontFamily: "Georgia, serif",
+              backdropFilter: "blur(10px)",
+              zIndex: 25,
+            }}>← Back</button>
+
+            {/* Planet indicator dot */}
             <div style={{
-              width: mobile ? 16 : 20, height: mobile ? 16 : 20, borderRadius: "50%",
-              background: selectedPlanet.color, marginBottom: 16,
-              boxShadow: `0 0 15px ${selectedPlanet.color}66`,
+              width: mobile ? 14 : 18, height: mobile ? 14 : 18, borderRadius: "50%",
+              background: selectedPlanet.color, marginBottom: 14,
+              boxShadow: `0 0 12px ${selectedPlanet.color}55, 0 2px 8px rgba(0,0,0,0.3)`,
             }} />
 
+            {/* Planet name */}
             <h2 style={{
-              color: selectedPlanet.color, fontSize: mobile ? 24 : 36,
-              letterSpacing: mobile ? 5 : 10, fontWeight: 300, marginBottom: 10,
+              color: "#2a2520", fontSize: mobile ? 22 : 34,
+              letterSpacing: mobile ? 5 : 10, fontWeight: 300, marginBottom: 8,
+              textShadow: "0 1px 2px rgba(255,255,255,0.3)",
             }}>{selectedPlanet.name}</h2>
 
+            {/* Prompt */}
             <p style={{
-              color: "rgba(200,195,210,0.5)", fontSize: mobile ? 12 : 14,
+              color: "rgba(60,55,45,0.55)", fontSize: mobile ? 12 : 15,
               fontStyle: "italic", marginBottom: mobile ? 28 : 40,
-              lineHeight: 1.8, textAlign: "center", maxWidth: 480,
+              lineHeight: 1.9, textAlign: "center", maxWidth: 520,
             }}>"{selectedPlanet.journalPrompt}"</p>
 
-            {/* Journal textarea — moon surface style */}
+            {/* Divider line — like a crack in the surface */}
+            <div style={{
+              width: 60, height: 1, marginBottom: mobile ? 24 : 32,
+              background: "linear-gradient(90deg, transparent, rgba(80,75,65,0.3), transparent)",
+            }} />
+
+            {/* Journal textarea — carved into moon surface */}
             <textarea
               value={journalText}
               onChange={(e) => setJournalText(e.target.value)}
               placeholder="Write what your soul needs to say..."
               style={{
-                width: "100%", height: mobile ? "220px" : "280px", padding: mobile ? "20px" : "28px",
-                background: "rgba(255,255,255,0.025)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: 18, color: "rgba(230,225,240,0.9)",
-                fontSize: mobile ? 15 : 17, lineHeight: 2,
+                width: "100%", height: mobile ? "260px" : "350px",
+                padding: mobile ? "22px" : "32px",
+                background: "rgba(0,0,0,0.06)",
+                border: "1px solid rgba(0,0,0,0.08)",
+                borderRadius: 20,
+                color: "#2a2520",
+                fontSize: mobile ? 15 : 18, lineHeight: 2.1,
                 resize: "none", outline: "none", fontFamily: "Georgia, serif",
                 boxSizing: "border-box",
-                letterSpacing: 0.3,
+                letterSpacing: 0.4,
+                boxShadow: "inset 0 2px 8px rgba(0,0,0,0.06), inset 0 -1px 0 rgba(255,255,255,0.15)",
               }}
             />
 
@@ -783,30 +824,34 @@ export default function App() {
             <div style={{ display: "flex", gap: mobile ? 8 : 10, marginTop: 24, marginBottom: 8 }}>
               {Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} style={{
-                  width: mobile ? 8 : 10, height: mobile ? 8 : 10, borderRadius: "50%",
-                  background: i < (moonCounts[selectedPlanet.id] || 0) ? "rgba(230,225,240,0.8)" : "rgba(255,255,255,0.08)",
-                  border: `1px solid ${i < (moonCounts[selectedPlanet.id] || 0) ? "rgba(230,225,240,0.4)" : "rgba(255,255,255,0.06)"}`,
+                  width: mobile ? 9 : 11, height: mobile ? 9 : 11, borderRadius: "50%",
+                  background: i < (moonCounts[selectedPlanet.id] || 0) ? "#5a554a" : "rgba(0,0,0,0.08)",
+                  border: `1px solid ${i < (moonCounts[selectedPlanet.id] || 0) ? "rgba(80,75,65,0.4)" : "rgba(0,0,0,0.06)"}`,
                   transition: "all 0.3s",
+                  boxShadow: i < (moonCounts[selectedPlanet.id] || 0) ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
                 }} />
               ))}
             </div>
-            <p style={{ color: "rgba(200,195,210,0.3)", fontSize: 11, marginBottom: mobile ? 24 : 32 }}>
+            <p style={{ color: "rgba(60,55,45,0.35)", fontSize: 11, marginBottom: mobile ? 24 : 36 }}>
               {moonCounts[selectedPlanet.id] || 0} / 10 moons until merge
             </p>
 
-            {/* Inscribe button */}
+            {/* Inscribe button — etched into surface */}
             <button
               onClick={saveJournalEntry}
               disabled={saving || !journalText.trim()}
               style={{
-                width: "100%", padding: mobile ? "16px" : "20px", border: "none", borderRadius: 16,
+                width: "100%", maxWidth: 400,
+                padding: mobile ? "16px" : "20px", border: "none", borderRadius: 16,
                 background: saving || !journalText.trim()
-                  ? "rgba(255,255,255,0.05)"
-                  : `linear-gradient(135deg, ${selectedPlanet.color}, ${selectedPlanet.color}bb)`,
-                color: saving || !journalText.trim() ? "rgba(255,255,255,0.2)" : "#000",
-                fontSize: mobile ? 15 : 16, fontWeight: 700, cursor: "pointer",
-                letterSpacing: 1.5, fontFamily: "Georgia, serif",
-                boxShadow: saving || !journalText.trim() ? "none" : `0 4px 30px ${selectedPlanet.color}33`,
+                  ? "rgba(0,0,0,0.06)"
+                  : `linear-gradient(135deg, ${selectedPlanet.color}, ${selectedPlanet.color}cc)`,
+                color: saving || !journalText.trim() ? "rgba(60,55,45,0.3)" : "#1a1510",
+                fontSize: mobile ? 15 : 17, fontWeight: 700, cursor: "pointer",
+                letterSpacing: 2, fontFamily: "Georgia, serif",
+                boxShadow: saving || !journalText.trim()
+                  ? "inset 0 1px 3px rgba(0,0,0,0.08)"
+                  : `0 4px 20px ${selectedPlanet.color}33, 0 2px 8px rgba(0,0,0,0.15)`,
                 transition: "all 0.3s ease",
               }}
             >{saving ? "Inscribing..." : "✦ Inscribe"}</button>
@@ -865,7 +910,7 @@ export default function App() {
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { margin: 0; overflow: hidden; touch-action: none; -webkit-overflow-scrolling: touch; }
-        textarea::placeholder { color: rgba(255,255,255,0.2); }
+        textarea::placeholder { color: rgba(80,75,65,0.3); }
         input::placeholder { color: rgba(255,255,255,0.2); }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
