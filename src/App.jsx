@@ -51,6 +51,8 @@ export default function App() {
   const [moonCounts, setMoonCounts] = useState({});
   const [sunSize, setSunSize] = useState(SUN_BASE_SIZE);
   const [starsCollected, setStarsCollected] = useState(0);
+  const starsRef = useRef(0);
+  const [cursorBlink, setCursorBlink] = useState(false);
   const [pastEntries, setPastEntries] = useState([]);
   const [showPastEntries, setShowPastEntries] = useState(false);
   const [mobile, setMobile] = useState(window.innerWidth < 768);
@@ -93,14 +95,14 @@ export default function App() {
 
   const loadUserData = async (authUser) => {
     const { data: profile } = await supabase.from("profiles").select("*").eq("id", authUser.id).single();
-    if (profile) { setAnonymousName(profile.anonymous_name); setSunSize(SUN_BASE_SIZE * profile.sun_size); setStarsCollected(profile.stars_collected); }
+    if (profile) { setAnonymousName(profile.anonymous_name); setSunSize(SUN_BASE_SIZE * profile.sun_size); setStarsCollected(profile.stars_collected); starsRef.current = profile.stars_collected; }
     const { data: moons } = await supabase.from("moon_progress").select("*").eq("user_id", authUser.id);
     if (moons) { const c = {}; moons.forEach((m) => (c[m.planet_id] = m.moon_count)); setMoonCounts(c); }
     setUser(authUser); setCheckingAuth(false);
   };
 
   const handleAuth = (u, n) => { setUser(u); setAnonymousName(n); loadUserData(u); };
-  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setAnonymousName(""); setMoonCounts({}); setSunSize(SUN_BASE_SIZE); setStarsCollected(0); };
+  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setAnonymousName(""); setMoonCounts({}); setSunSize(SUN_BASE_SIZE); setStarsCollected(0); starsRef.current = 0; };
 
   const saveJournalEntry = async () => {
     if (!journalText.trim() || !selectedPlanet || !user) return;
@@ -123,7 +125,14 @@ export default function App() {
     setPastEntries(data || []); setShowPastEntries(true);
   };
 
-  const collectStar = async () => { const n = starsCollected + 1; setStarsCollected(n); await supabase.from("profiles").update({ stars_collected: n }).eq("id", user.id); };
+  const collectStar = async () => {
+    starsRef.current += 1;
+    const n = starsRef.current;
+    setStarsCollected(n);
+    setCursorBlink(true);
+    setTimeout(() => setCursorBlink(false), 400);
+    await supabase.from("profiles").update({ stars_collected: n }).eq("id", user.id);
+  };
 
   // ─── Canvas Animation ───
   useEffect(() => {
@@ -378,13 +387,18 @@ export default function App() {
       {!mobile && (
         <div id="shunya-cursor" style={{
           position: "fixed", pointerEvents: "none", zIndex: 9999,
-          width: 44, height: 44, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 25%, rgba(80,20,120,0.4) 45%, rgba(147,51,234,0.2) 60%, rgba(245,166,35,0.1) 75%, transparent 85%)",
-          boxShadow: "0 0 8px rgba(0,0,0,0.9), 0 0 20px rgba(80,20,120,0.4), 0 0 40px rgba(147,51,234,0.15), inset 0 0 10px rgba(0,0,0,1)",
-          border: "1.5px solid rgba(147,51,234,0.25)",
+          width: cursorBlink ? 52 : 44, height: cursorBlink ? 52 : 44, borderRadius: "50%",
+          background: cursorBlink
+            ? "radial-gradient(circle, rgba(255,215,0,0.3) 0%, rgba(0,0,0,0.8) 30%, rgba(80,20,120,0.5) 50%, rgba(147,51,234,0.3) 65%, rgba(245,166,35,0.15) 80%, transparent 90%)"
+            : "radial-gradient(circle, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 25%, rgba(80,20,120,0.4) 45%, rgba(147,51,234,0.2) 60%, rgba(245,166,35,0.1) 75%, transparent 85%)",
+          boxShadow: cursorBlink
+            ? "0 0 15px rgba(255,215,0,0.6), 0 0 30px rgba(255,200,50,0.3), 0 0 50px rgba(147,51,234,0.2), inset 0 0 8px rgba(255,215,0,0.3)"
+            : "0 0 8px rgba(0,0,0,0.9), 0 0 20px rgba(80,20,120,0.4), 0 0 40px rgba(147,51,234,0.15), inset 0 0 10px rgba(0,0,0,1)",
+          border: cursorBlink ? "2px solid rgba(255,215,0,0.6)" : "1.5px solid rgba(235,230,220,0.25)",
           transform: "translate(-50%, -50%)",
           left: 0, top: 0,
           willChange: "transform, left, top",
+          transition: "width 0.2s ease, height 0.2s ease, box-shadow 0.2s ease, border 0.2s ease, background 0.2s ease",
         }} />
       )}
       {/* Canvas — always runs, gets blurred when overlay is open */}
