@@ -177,7 +177,8 @@ export default function App() {
   const [newTodoText, setNewTodoText] = useState("");
   const [newTodoPriority, setNewTodoPriority] = useState("medium");
   const [activeComet, setActiveComet] = useState(null);
-  const [toast, setToast] = useState(null); // { message, type: "error" | "success" }
+  const [toast, setToast] = useState(null);
+  const [showPlanetNav, setShowPlanetNav] = useState(false); // { message, type: "error" | "success" }
 
   // Show toast notification — auto-dismisses
   const showToast = (message, type = "error") => {
@@ -1091,7 +1092,8 @@ export default function App() {
             <span style={{ color: "#f5a623", fontSize: 18, letterSpacing: 6, fontWeight: 300 }}>SHUNYA</span>
             <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, letterSpacing: 2 }}>Journey Within</span>
           </div>
-          <div style={{ position: "absolute", top: 20, right: 24, zIndex: 10, display: "flex", alignItems: "center", gap: 20 }}>
+          <div style={{ position: "absolute", top: 20, right: 24, zIndex: 10, display: "flex", alignItems: "center", gap: 16 }}>
+            <button onClick={() => setShowPlanetNav(!showPlanetNav)} style={{ background: showPlanetNav ? "rgba(245,166,35,0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${showPlanetNav ? "rgba(245,166,35,0.3)" : "rgba(255,255,255,0.1)"}`, borderRadius: 10, padding: "7px 14px", color: showPlanetNav ? "#f5a623" : "rgba(255,255,255,0.5)", fontSize: 11, cursor: "pointer", letterSpacing: 1, fontFamily: "Georgia, serif", transition: "all 0.3s" }}>✦ Planets</button>
             <span style={{ color: "rgba(255,215,0,0.8)", fontSize: 13 }}>★ {starsCollected}</span>
             <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, letterSpacing: 1 }}>{anonymousName}</span>
             <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 14px", color: "rgba(255,255,255,0.4)", fontSize: 11, cursor: "pointer", letterSpacing: 1 }}>EXIT</button>
@@ -1103,10 +1105,55 @@ export default function App() {
       {mobile && !hasOverlay && (
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 70%, transparent 100%)" }}>
           <span style={{ color: "#f5a623", fontSize: 14, letterSpacing: 4, fontWeight: 300 }}>SHUNYA</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{anonymousName}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => setShowPlanetNav(!showPlanetNav)} style={{ background: showPlanetNav ? "rgba(245,166,35,0.15)" : "rgba(255,255,255,0.08)", border: `1px solid ${showPlanetNav ? "rgba(245,166,35,0.25)" : "rgba(255,255,255,0.1)"}`, borderRadius: 6, padding: "5px 10px", color: showPlanetNav ? "#f5a623" : "rgba(255,255,255,0.4)", fontSize: 9, cursor: "pointer", letterSpacing: 1, fontFamily: "Georgia, serif" }}>✦</button>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, maxWidth: 70, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{anonymousName}</span>
             <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 10px", color: "rgba(255,255,255,0.4)", fontSize: 10, cursor: "pointer" }}>EXIT</button>
           </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════ */}
+      {/* PLANET NAV — Quick access sidebar        */}
+      {/* ═══════════════════════════════════════ */}
+      {showPlanetNav && !hasOverlay && (
+        <div style={{
+          position: "absolute",
+          top: mobile ? 52 : 56, right: mobile ? 8 : 20,
+          zIndex: 15,
+          background: "rgba(8,6,18,0.9)", backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 18, padding: mobile ? "12px 10px" : "16px 14px",
+          display: "flex", flexDirection: "column", gap: mobile ? 4 : 6,
+          animation: "overlayIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+          minWidth: mobile ? 170 : 200,
+        }}>
+          {PLANETS.map((p) => (
+            <button key={p.id} onClick={() => {
+              setShowPlanetNav(false);
+              setSelectedPlanet(p);
+              setSelectedMoonEntry(null);
+              supabase.from("journal_entries").select("*").eq("user_id", user.id).eq("planet_id", p.id).order("created_at", { ascending: false }).then(({ data }) => {
+                setPastEntries(data || []);
+              });
+            }} style={{
+              display: "flex", alignItems: "center", gap: mobile ? 10 : 12,
+              padding: mobile ? "10px 12px" : "10px 14px",
+              background: "transparent", border: "none", borderRadius: 12,
+              cursor: "pointer", transition: "all 0.2s",
+              textAlign: "left",
+            }}>
+              <div style={{ width: mobile ? 10 : 12, height: mobile ? 10 : 12, borderRadius: "50%", background: p.color, boxShadow: `0 0 8px ${p.color}44`, flexShrink: 0 }} />
+              <div>
+                <span style={{ color: p.color, fontSize: mobile ? 11 : 12, letterSpacing: 2, fontFamily: "Georgia, serif", display: "block" }}>{p.name}</span>
+                <span style={{ color: "rgba(255,255,255,0.2)", fontSize: mobile ? 8 : 9, letterSpacing: 1 }}>{p.meaning}</span>
+              </div>
+              {(moonCounts[p.id] || 0) > 0 && (
+                <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.15)", fontSize: mobile ? 8 : 9 }}>{moonCounts[p.id]} ☽</span>
+              )}
+            </button>
+          ))}
         </div>
       )}
 
