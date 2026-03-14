@@ -103,6 +103,7 @@ export default function App() {
   const [ageGroup, setAgeGroup] = useState(null);
   const [showAgePrompt, setShowAgePrompt] = useState(false);
   const [futureRevealDate, setFutureRevealDate] = useState(null);
+  const [rocketLaunching, setRocketLaunching] = useState(false);
   const promptHistoryRef = useRef({}); // tracks last prompt index per planet
   const [journalText, setJournalText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -214,13 +215,18 @@ export default function App() {
   const saveFutureMessage = async (months) => {
     if (!journalText.trim() || !selectedPlanet || !user) return;
     setSaving(true);
+
+    // Launch rocket animation first
+    setRocketLaunching(true);
+
+    // Save in background while rocket flies
     const revealDate = new Date();
     revealDate.setMonth(revealDate.getMonth() + months);
     const { error } = await supabase.from("journal_entries").insert({
       user_id: user.id, planet_id: "moksha", content: journalText, reveal_at: revealDate.toISOString()
     });
-    if (error) { alert("Failed to save: " + error.message); setSaving(false); return; }
-    // Update moon count same as normal entry
+    if (error) { alert("Failed to save: " + error.message); setSaving(false); setRocketLaunching(false); return; }
+
     const cur = moonCounts["moksha"] || 0; const next = cur + 1;
     await supabase.from("moon_progress").update({ moon_count: next >= 10 ? 0 : next }).eq("user_id", user.id).eq("planet_id", "moksha");
     if (next >= 10) {
@@ -242,8 +248,13 @@ export default function App() {
       setTimeout(() => setSunSize(SUN_BASE_SIZE * mult), 1200);
       setMoonCounts((p) => ({ ...p, moksha: 0 }));
     } else { setMoonCounts((p) => ({ ...p, moksha: next })); }
-    setJournalText(""); setSaving(false); setFutureRevealDate(null);
-    setJournalOpen(false); setSelectedPlanet(null);
+
+    // Wait for rocket animation to finish, then exit
+    setTimeout(() => {
+      setRocketLaunching(false);
+      setJournalText(""); setSaving(false); setFutureRevealDate(null);
+      setJournalOpen(false); setSelectedPlanet(null);
+    }, 2800);
   };
 
   const loadPastEntries = async (pid) => {
@@ -895,11 +906,11 @@ export default function App() {
           animation: "overlayIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
           overflowY: "auto",
         }}>
-          {/* Moon surface — dark grey base with subtle warm/cool variation like real regolith */}
+          {/* Moon surface — darker base for better text contrast */}
           <div style={{
             position: "absolute", inset: 0, zIndex: -3,
             background: `
-              radial-gradient(ellipse at 65% 25%, #918f8b 0%, #7a7874 10%, #5e5c58 25%, #444240 45%, #2e2d2b 65%, #1e1d1c 85%, #141413 100%)
+              radial-gradient(ellipse at 65% 25%, #706e6a 0%, #555350 10%, #3e3c3a 25%, #2c2b29 45%, #201f1e 65%, #161515 85%, #0e0e0d 100%)
             `,
           }} />
 
@@ -1012,17 +1023,17 @@ export default function App() {
               boxShadow: `0 0 12px ${selectedPlanet.color}55, 0 2px 6px rgba(0,0,0,0.4)`,
             }} />
 
-            {/* Planet name */}
+            {/* Planet name — colored to match the planet */}
             <h2 style={{
-              color: "rgba(200,198,190,0.9)", fontSize: mobile ? 22 : 34,
+              color: selectedPlanet.color, fontSize: mobile ? 22 : 34,
               letterSpacing: mobile ? 5 : 10, fontWeight: 300, marginBottom: 8,
-              textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+              textShadow: `0 2px 8px ${selectedPlanet.color}33, 0 1px 3px rgba(0,0,0,0.5)`,
             }}>{selectedPlanet.name}</h2>
 
             {/* Prompt — Moksha has none, others show rotating question */}
             {selectedPlanet.id === "moksha" ? (
               <p style={{
-                color: "rgba(160,158,150,0.4)", fontSize: mobile ? 12 : 15,
+                color: "rgba(200,195,180,0.45)", fontSize: mobile ? 12 : 15,
                 fontStyle: "italic", marginBottom: mobile ? 24 : 36,
                 lineHeight: 1.9, textAlign: "center", maxWidth: 560,
               }}>Moksha asks nothing of you. Write freely — to yourself, to the universe, or to who you will become.</p>
@@ -1048,14 +1059,14 @@ export default function App() {
               style={{
                 width: "100%", height: mobile ? "300px" : "420px",
                 padding: mobile ? "24px" : "36px",
-                background: "rgba(0,0,0,0.18)",
-                border: "1px solid rgba(100,100,95,0.12)",
+                background: "rgba(0,0,0,0.25)",
+                border: "1px solid rgba(150,148,140,0.12)",
                 borderRadius: 22,
-                color: "rgba(210,208,200,0.9)",
+                color: "rgba(220,218,210,0.92)",
                 fontSize: mobile ? 16 : 19, lineHeight: 2.2,
                 resize: "none", outline: "none", fontFamily: "Georgia, serif",
                 boxSizing: "border-box", letterSpacing: 0.4,
-                boxShadow: "inset 0 4px 16px rgba(0,0,0,0.22), inset 0 -1px 0 rgba(120,120,115,0.06)",
+                boxShadow: "inset 0 4px 16px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(140,140,135,0.06)",
               }}
             />
 
@@ -1141,6 +1152,45 @@ export default function App() {
       )}
 
       {/* ═══════════════════════════════════════ */}
+      {/* ROCKET LAUNCH — Moksha future message      */}
+      {/* ═══════════════════════════════════════ */}
+      {rocketLaunching && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 30,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,0.85)",
+          animation: "fadeIn 0.3s ease",
+        }}>
+          {/* Rocket */}
+          <div style={{
+            animation: "rocketLaunch 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards",
+            display: "flex", flexDirection: "column", alignItems: "center",
+          }}>
+            {/* Rocket body */}
+            <div style={{ fontSize: 48, lineHeight: 1 }}>🚀</div>
+            {/* Flame trail */}
+            <div style={{
+              width: 4, background: "linear-gradient(to bottom, #ffd700, #ff6b35, #ff4444, transparent)",
+              animation: "flameTrail 2.5s ease forwards",
+              borderRadius: 4,
+            }} />
+          </div>
+
+          {/* Message */}
+          <p style={{
+            color: "rgba(255,215,0,0.6)", fontSize: mobile ? 14 : 18,
+            fontFamily: "Georgia, serif", letterSpacing: 2, marginTop: 40,
+            animation: "fadeIn 1s ease 0.5s both",
+          }}>Your message is on its way to the future...</p>
+          <p style={{
+            color: "rgba(255,255,255,0.25)", fontSize: mobile ? 11 : 13,
+            fontFamily: "Georgia, serif", letterSpacing: 1, marginTop: 12,
+            animation: "fadeIn 1s ease 1.2s both",
+          }}>It will find you when the time is right.</p>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════ */}
       {/* PAST ENTRIES — Full screen overlay       */}
       {/* ═══════════════════════════════════════ */}
       {selectedPlanet && showPastEntries && (
@@ -1183,6 +1233,17 @@ export default function App() {
         @keyframes overlayIn {
           from { opacity: 0; transform: scale(0.92) translateY(10px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes rocketLaunch {
+          0% { transform: translateY(0); opacity: 1; }
+          15% { transform: translateY(10px); opacity: 1; }
+          100% { transform: translateY(-120vh); opacity: 0; }
+        }
+        @keyframes flameTrail {
+          0% { height: 20px; opacity: 0.8; }
+          15% { height: 40px; opacity: 1; }
+          60% { height: 200px; opacity: 0.7; }
+          100% { height: 400px; opacity: 0; }
         }
         @keyframes planetPulse {
           0%, 100% { transform: scale(1); box-shadow: 0 0 60px currentColor; }
