@@ -287,12 +287,46 @@ export default function App() {
 
       bgStars.forEach((s) => { s.twinkle += s.speed; const a = 0.3 + Math.sin(s.twinkle) * 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); });
 
+      const t_orb = timeRef.current;
       PLANETS.forEach((p) => {
         const o = p.baseOrbit * scale;
-        // Orbit ring — subtle glow matching planet color
+        const planetAngle = t_orb * p.speed;
+
+        // Base orbit — white, subtle
         ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(140,130,180,0.08)";
+        ctx.strokeStyle = "rgba(255,255,255,0.06)";
         ctx.lineWidth = 1; ctx.stroke();
+
+        // Color glow arc that follows the planet — draw a gradient arc around planet's position
+        const arcSpread = 0.8; // how far the color spreads along the orbit (in radians)
+        const segments = 40;
+        for (let s = 0; s < segments; s++) {
+          const segAngle = planetAngle - arcSpread / 2 + (s / segments) * arcSpread;
+          const nextAngle = planetAngle - arcSpread / 2 + ((s + 1) / segments) * arcSpread;
+          const distFromCenter = Math.abs((s / segments) - 0.5) * 2; // 0 at planet, 1 at edges
+          const alpha = (1 - distFromCenter * distFromCenter) * 0.35; // fade at edges
+
+          const x1 = cx + Math.cos(segAngle) * o;
+          const y1 = cy + Math.sin(segAngle) * o * eR;
+          const x2 = cx + Math.cos(nextAngle) * o;
+          const y2 = cy + Math.sin(nextAngle) * o * eR;
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = p.color + Math.round(alpha * 255).toString(16).padStart(2, '0');
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        // Bright spot right at planet position on orbit
+        const brightX = cx + Math.cos(planetAngle) * o;
+        const brightY = cy + Math.sin(planetAngle) * o * eR;
+        const brightGlow = ctx.createRadialGradient(brightX, brightY, 0, brightX, brightY, 12);
+        brightGlow.addColorStop(0, p.color + "40");
+        brightGlow.addColorStop(1, "transparent");
+        ctx.fillStyle = brightGlow;
+        ctx.fillRect(brightX - 12, brightY - 12, 24, 24);
       });
 
       const csz = sunSize * scale;
