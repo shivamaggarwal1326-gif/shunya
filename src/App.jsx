@@ -3,35 +3,35 @@ import { supabase } from "./supabaseClient";
 import AuthPage from "./AuthPage";
 
 const PLANETS = [
-  { id: "aatma", name: "AATMA", meaning: "The Soul · आत्मा", color: "#f5a623", glow: "rgba(245,166,35,0.4)", baseSize: 18, baseOrbit: 140, speed: 0.0005,
+  { id: "aatma", name: "AATMA", meaning: "The Soul · आत्मा", color: "#f5a623", glow: "rgba(245,166,35,0.4)", baseSize: 18, baseOrbit: 120, speed: 0.0005,
     description: "Aatma is the eternal soul — the part of you that existed before your name, your wounds, and your achievements. It is not your personality. It is not your story. It is the awareness behind all of it.",
     howItLives: "When you sit in silence and feel something ancient — something that was here before your first memory — that is Aatma. Journal here when you want to speak from beyond identity.",
     journalPrompt: "What truth would remain if everything about your life was stripped away?" },
-  { id: "pranaa", name: "PRANAA", meaning: "The Life Force · प्राण", color: "#4ecdc4", glow: "rgba(78,205,196,0.4)", baseSize: 15, baseOrbit: 190, speed: 0.0004,
+  { id: "pranaa", name: "PRANAA", meaning: "The Life Force · प्राण", color: "#4ecdc4", glow: "rgba(78,205,196,0.4)", baseSize: 15, baseOrbit: 195, speed: 0.0004,
     description: "Pranaa is the breath that moves through you — the invisible force that keeps you alive without asking permission. It is energy itself. Not the kind you drink coffee for. The kind that animates your entire being.",
     howItLives: "When you feel alive — truly, electrically alive — that is Pranaa. When you feel drained, disconnected, heavy — Pranaa is asking for attention. Journal here about your energy, your body, your aliveness.",
     journalPrompt: "Where in your body do you feel the most alive right now? Where do you feel nothing?" },
-  { id: "kaal", name: "KAAL", meaning: "Time · काल", color: "#a78bfa", glow: "rgba(167,139,250,0.4)", baseSize: 20, baseOrbit: 245, speed: 0.00035,
+  { id: "kaal", name: "KAAL", meaning: "Time · काल", color: "#a78bfa", glow: "rgba(167,139,250,0.4)", baseSize: 20, baseOrbit: 280, speed: 0.00035,
     description: "Kaal is time — not the clock on your wall but the deeper rhythm that governs birth, death, seasons, and everything in between. Kaal does not rush. Kaal does not wait. It simply moves.",
     howItLives: "When you feel anxious about the future or trapped in the past — that is your relationship with Kaal. Journal here when time feels heavy, when you want to process what was or prepare for what is coming.",
     journalPrompt: "What moment in your past still holds power over your present?" },
-  { id: "dharma", name: "DHARMA", meaning: "Purpose · धर्म", color: "#f093fb", glow: "rgba(240,147,251,0.4)", baseSize: 16, baseOrbit: 300, speed: 0.0003,
+  { id: "dharma", name: "DHARMA", meaning: "Purpose · धर्म", color: "#f093fb", glow: "rgba(240,147,251,0.4)", baseSize: 16, baseOrbit: 370, speed: 0.0003,
     description: "Dharma is your sacred duty — the thing you were put here to do. Not your job title. Not what society expects. The deep, quiet calling that only you can hear when everything else goes silent.",
     howItLives: "When you feel lost, purposeless, or stuck in a life that does not feel like yours — Dharma is calling. Journal here when you want to explore what you are truly meant to do.",
     journalPrompt: "If money and judgment did not exist, what would you spend your life doing?" },
-  { id: "moksha", name: "MOKSHA", meaning: "Liberation · मोक्ष", color: "#ffd700", glow: "rgba(255,215,0,0.4)", baseSize: 14, baseOrbit: 355, speed: 0.00025,
+  { id: "moksha", name: "MOKSHA", meaning: "Liberation · मोक्ष", color: "#ffd700", glow: "rgba(255,215,0,0.4)", baseSize: 14, baseOrbit: 465, speed: 0.00025,
     description: "Moksha is the ultimate freedom — liberation from the cycles of suffering, attachment, and repetition. It is not an escape from life but a deeper entrance into it, free from chains.",
     howItLives: "When you want to send a message to your future self — when you want to set something free — Moksha is where you go. Messages here can be locked and revealed later.",
     journalPrompt: "What would you tell yourself one year from today?" },
-  { id: "karma", name: "KARMA", meaning: "Action · कर्म", color: "#ff6b6b", glow: "rgba(255,107,107,0.4)", baseSize: 17, baseOrbit: 405, speed: 0.0002,
+  { id: "karma", name: "KARMA", meaning: "Action · कर्म", color: "#ff6b6b", glow: "rgba(255,107,107,0.4)", baseSize: 17, baseOrbit: 560, speed: 0.0002,
     description: "Karma is not punishment. It is the simple truth that every action creates a ripple. What you do, what you say, what you think — it all echoes forward. Karma is the universe keeping a ledger.",
     howItLives: "When you feel guilt, pride, consequence, or the weight of choices — that is Karma speaking. Journal here to process your actions and their echoes.",
     journalPrompt: "What is one action from this week that will ripple into your future?" },
-  { id: "akasha", name: "AKASHA", meaning: "Space · आकाश", color: "#74b9ff", glow: "rgba(116,185,255,0.4)", baseSize: 19, baseOrbit: 455, speed: 0.00015,
+  { id: "akasha", name: "AKASHA", meaning: "Space · आकाश", color: "#74b9ff", glow: "rgba(116,185,255,0.4)", baseSize: 19, baseOrbit: 660, speed: 0.00015,
     description: "Akasha is the infinite space — the ether that holds everything and nothing. It is the canvas on which the universe paints. Without Akasha, there is no room for anything to exist.",
     howItLives: "When you feel overwhelmed, cluttered, suffocated — Akasha is asking you to create space. Journal here when you need room to breathe, to think, to simply be.",
     journalPrompt: "What are you holding onto that no longer deserves space in your life?" },
-  { id: "maya", name: "MAYA", meaning: "Illusion · माया", color: "#fd79a8", glow: "rgba(253,121,168,0.4)", baseSize: 13, baseOrbit: 500, speed: 0.0001,
+  { id: "maya", name: "MAYA", meaning: "Illusion · माया", color: "#fd79a8", glow: "rgba(253,121,168,0.4)", baseSize: 13, baseOrbit: 760, speed: 0.0001,
     description: "Maya is the grand illusion — the veil that makes you believe the temporary is permanent, the material is everything, and the ego is who you truly are. Maya is not evil. It is the game.",
     howItLives: "When you catch yourself chasing something hollow, believing a lie you told yourself, or living someone else's life — that is Maya. Journal here to see through the illusion.",
     journalPrompt: "What story have you been telling yourself that is not actually true?" }
@@ -187,7 +187,7 @@ export default function App() {
 
     const handleInteraction = (mx, my) => {
       const w = window.innerWidth; const h = window.innerHeight;
-      const cx = w / 2; const cy = h / 2; const scale = scaleRef.current;
+      const cx = w < 768 ? w / 2 : w * 0.55; const cy = h / 2; const scale = scaleRef.current;
       const eR = w < 768 ? 0.65 : 0.4;
       shootingStarsRef.current.forEach((star) => { const d = Math.hypot(star.x - mx, star.y - my); if (d < 50) { star.caught = true; collectStar(); } });
       const t = timeRef.current;
@@ -209,7 +209,10 @@ export default function App() {
     const render = (now) => {
       const dt = Math.min(now - lastFrameTime, 50); // cap at 50ms to avoid jumps
       lastFrameTime = now;
-      const w = window.innerWidth; const h = window.innerHeight; const cx = w / 2; const cy = h / 2;
+      const w = window.innerWidth; const h = window.innerHeight;
+      // Offset sun to the right on desktop so outer planets orbit through the left edge
+      const cx = w < 768 ? w / 2 : w * 0.55;
+      const cy = h / 2;
       const scale = scaleRef.current; const eR = w < 768 ? 0.65 : 0.4;
       timeRef.current += dt;
 
@@ -387,19 +390,26 @@ export default function App() {
       {!mobile && (
         <div id="shunya-cursor" style={{
           position: "fixed", pointerEvents: "none", zIndex: 9999,
-          width: cursorBlink ? 52 : 44, height: cursorBlink ? 52 : 44, borderRadius: "50%",
+          width: cursorBlink ? 54 : 46, height: cursorBlink ? 54 : 46, borderRadius: "50%",
           background: cursorBlink
-            ? "radial-gradient(circle, rgba(255,215,0,0.3) 0%, rgba(0,0,0,0.8) 30%, rgba(80,20,120,0.5) 50%, rgba(147,51,234,0.3) 65%, rgba(245,166,35,0.15) 80%, transparent 90%)"
-            : "radial-gradient(circle, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 25%, rgba(80,20,120,0.4) 45%, rgba(147,51,234,0.2) 60%, rgba(245,166,35,0.1) 75%, transparent 85%)",
+            ? "radial-gradient(circle, transparent 0%, transparent 28%, rgba(255,200,50,0.35) 38%, rgba(255,170,30,0.2) 50%, rgba(147,51,234,0.15) 65%, transparent 80%)"
+            : "radial-gradient(circle, transparent 0%, transparent 30%, rgba(200,160,255,0.18) 40%, rgba(147,51,234,0.15) 52%, rgba(100,40,160,0.08) 65%, transparent 80%)",
           boxShadow: cursorBlink
-            ? "0 0 15px rgba(255,215,0,0.6), 0 0 30px rgba(255,200,50,0.3), 0 0 50px rgba(147,51,234,0.2), inset 0 0 8px rgba(255,215,0,0.3)"
-            : "0 0 8px rgba(0,0,0,0.9), 0 0 20px rgba(80,20,120,0.4), 0 0 40px rgba(147,51,234,0.15), inset 0 0 10px rgba(0,0,0,1)",
-          border: cursorBlink ? "2px solid rgba(255,215,0,0.6)" : "1.5px solid rgba(235,230,220,0.25)",
+            ? "0 0 15px rgba(255,215,0,0.5), 0 0 35px rgba(255,180,50,0.25), 0 0 60px rgba(147,51,234,0.15), inset 0 0 15px rgba(255,200,50,0.15)"
+            : "0 0 12px rgba(147,51,234,0.25), 0 0 30px rgba(100,40,160,0.12), 0 0 50px rgba(80,20,120,0.08), inset 0 0 12px rgba(100,60,180,0.06)",
+          border: cursorBlink ? "2px solid rgba(255,215,0,0.55)" : "1.5px solid rgba(200,180,240,0.2)",
           transform: "translate(-50%, -50%)",
           left: 0, top: 0,
           willChange: "transform, left, top",
-          transition: "width 0.2s ease, height 0.2s ease, box-shadow 0.2s ease, border 0.2s ease, background 0.2s ease",
-        }} />
+          transition: "width 0.2s ease, height 0.2s ease, box-shadow 0.25s ease, border 0.2s ease, background 0.25s ease",
+        }}>
+          {/* Inner accretion ring */}
+          <div style={{
+            position: "absolute", inset: "20%", borderRadius: "50%",
+            border: cursorBlink ? "1px solid rgba(255,200,50,0.4)" : "1px solid rgba(180,150,230,0.15)",
+            transition: "border 0.2s ease",
+          }} />
+        </div>
       )}
       {/* Canvas — always runs, gets blurred when overlay is open */}
       <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, transition: "filter 0.7s cubic-bezier(0.16, 1, 0.3, 1)", filter: hasOverlay ? "blur(10px) brightness(0.35)" : "none" }} />
