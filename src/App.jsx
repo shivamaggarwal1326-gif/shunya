@@ -147,6 +147,9 @@ export default function App() {
       setMoonCounts((p) => ({ ...p, [selectedPlanet.id]: 0 }));
     } else { setMoonCounts((p) => ({ ...p, [selectedPlanet.id]: next })); }
     setJournalText(""); setSaving(false);
+    // Auto-return to solar system so user sees the moon + merge animation
+    setJournalOpen(false);
+    setSelectedPlanet(null);
   };
 
   const loadPastEntries = async (pid) => {
@@ -665,42 +668,109 @@ export default function App() {
       )}
 
       {/* ═══════════════════════════════════════ */}
-      {/* JOURNAL — Full screen overlay           */}
+      {/* JOURNAL — Moon surface themed overlay    */}
       {/* ═══════════════════════════════════════ */}
       {selectedPlanet && journalOpen && (
         <div style={{
           position: "absolute", inset: 0, zIndex: 20,
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          padding: mobile ? "60px 28px 40px" : "60px 40px",
+          display: "flex", flexDirection: "column", alignItems: "center",
           animation: "overlayIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+          overflowY: "auto",
         }}>
+          {/* Moon surface background layer */}
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "radial-gradient(ellipse at 50% 30%, rgba(60,58,68,0.95) 0%, rgba(35,33,42,0.97) 40%, rgba(18,16,24,0.98) 100%)",
+            zIndex: -1,
+          }} />
+          {/* Subtle crater texture dots */}
+          <div style={{
+            position: "absolute", inset: 0, opacity: 0.04, zIndex: -1,
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)",
+            backgroundSize: "30px 30px",
+          }} />
+
+          {/* Back button */}
           <button onClick={() => setJournalOpen(false)} style={{
             position: "absolute", top: mobile ? 20 : 30, left: mobile ? 20 : 30,
-            background: "none", border: "none", color: "rgba(255,255,255,0.4)",
-            fontSize: 14, cursor: "pointer", letterSpacing: 1, fontFamily: "Georgia, serif",
+            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 10, padding: "8px 16px",
+            color: "rgba(255,255,255,0.5)", fontSize: 13, cursor: "pointer",
+            letterSpacing: 1, fontFamily: "Georgia, serif",
           }}>← Back</button>
 
-          <h2 style={{ color: selectedPlanet.color, fontSize: mobile ? 22 : 32, letterSpacing: mobile ? 4 : 8, fontWeight: 300, marginBottom: 8 }}>{selectedPlanet.name}</h2>
-          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: mobile ? 12 : 14, fontStyle: "italic", marginBottom: mobile ? 24 : 32, lineHeight: 1.7, textAlign: "center", maxWidth: 500 }}>
-            {selectedPlanet.journalPrompt}
-          </p>
-
-          <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} placeholder="Write what your soul needs to say..."
-            style={{
-              width: "100%", maxWidth: 500, height: mobile ? "180px" : "220px", padding: 20,
-              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 14, color: "#fff", fontSize: mobile ? 14 : 16, lineHeight: 1.9,
-              resize: "none", outline: "none", fontFamily: "Georgia, serif", boxSizing: "border-box",
+          {/* Content area */}
+          <div style={{
+            width: "100%", maxWidth: 620, padding: mobile ? "80px 24px 40px" : "100px 40px 60px",
+            display: "flex", flexDirection: "column", alignItems: "center",
+          }}>
+            {/* Planet indicator */}
+            <div style={{
+              width: mobile ? 16 : 20, height: mobile ? 16 : 20, borderRadius: "50%",
+              background: selectedPlanet.color, marginBottom: 16,
+              boxShadow: `0 0 15px ${selectedPlanet.color}66`,
             }} />
 
-          <button onClick={saveJournalEntry} disabled={saving || !journalText.trim()} style={{
-            width: "100%", maxWidth: 500, padding: mobile ? "15px" : "18px", border: "none", borderRadius: 14,
-            background: `linear-gradient(135deg, ${selectedPlanet.color}, ${selectedPlanet.color}cc)`,
-            color: "#000", fontSize: mobile ? 14 : 15, fontWeight: 700, cursor: "pointer",
-            letterSpacing: 1, fontFamily: "Georgia, serif", marginTop: 20,
-            opacity: saving || !journalText.trim() ? 0.5 : 1,
-            boxShadow: `0 4px 24px ${selectedPlanet.color}44`,
-          }}>{saving ? "Inscribing..." : "✦ Inscribe"}</button>
+            <h2 style={{
+              color: selectedPlanet.color, fontSize: mobile ? 24 : 36,
+              letterSpacing: mobile ? 5 : 10, fontWeight: 300, marginBottom: 10,
+            }}>{selectedPlanet.name}</h2>
+
+            <p style={{
+              color: "rgba(200,195,210,0.5)", fontSize: mobile ? 12 : 14,
+              fontStyle: "italic", marginBottom: mobile ? 28 : 40,
+              lineHeight: 1.8, textAlign: "center", maxWidth: 480,
+            }}>"{selectedPlanet.journalPrompt}"</p>
+
+            {/* Journal textarea — moon surface style */}
+            <textarea
+              value={journalText}
+              onChange={(e) => setJournalText(e.target.value)}
+              placeholder="Write what your soul needs to say..."
+              style={{
+                width: "100%", height: mobile ? "220px" : "280px", padding: mobile ? "20px" : "28px",
+                background: "rgba(255,255,255,0.025)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: 18, color: "rgba(230,225,240,0.9)",
+                fontSize: mobile ? 15 : 17, lineHeight: 2,
+                resize: "none", outline: "none", fontFamily: "Georgia, serif",
+                boxSizing: "border-box",
+                letterSpacing: 0.3,
+              }}
+            />
+
+            {/* Moon progress bar */}
+            <div style={{ display: "flex", gap: mobile ? 8 : 10, marginTop: 24, marginBottom: 8 }}>
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} style={{
+                  width: mobile ? 8 : 10, height: mobile ? 8 : 10, borderRadius: "50%",
+                  background: i < (moonCounts[selectedPlanet.id] || 0) ? "rgba(230,225,240,0.8)" : "rgba(255,255,255,0.08)",
+                  border: `1px solid ${i < (moonCounts[selectedPlanet.id] || 0) ? "rgba(230,225,240,0.4)" : "rgba(255,255,255,0.06)"}`,
+                  transition: "all 0.3s",
+                }} />
+              ))}
+            </div>
+            <p style={{ color: "rgba(200,195,210,0.3)", fontSize: 11, marginBottom: mobile ? 24 : 32 }}>
+              {moonCounts[selectedPlanet.id] || 0} / 10 moons until merge
+            </p>
+
+            {/* Inscribe button */}
+            <button
+              onClick={saveJournalEntry}
+              disabled={saving || !journalText.trim()}
+              style={{
+                width: "100%", padding: mobile ? "16px" : "20px", border: "none", borderRadius: 16,
+                background: saving || !journalText.trim()
+                  ? "rgba(255,255,255,0.05)"
+                  : `linear-gradient(135deg, ${selectedPlanet.color}, ${selectedPlanet.color}bb)`,
+                color: saving || !journalText.trim() ? "rgba(255,255,255,0.2)" : "#000",
+                fontSize: mobile ? 15 : 16, fontWeight: 700, cursor: "pointer",
+                letterSpacing: 1.5, fontFamily: "Georgia, serif",
+                boxShadow: saving || !journalText.trim() ? "none" : `0 4px 30px ${selectedPlanet.color}33`,
+                transition: "all 0.3s ease",
+              }}
+            >{saving ? "Inscribing..." : "✦ Inscribe"}</button>
+          </div>
         </div>
       )}
 
