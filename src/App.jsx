@@ -514,26 +514,80 @@ export default function App() {
 
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // ─── Deep space background with nebula ───
-      ctx.fillStyle = "#05020e"; ctx.fillRect(0, 0, w, h);
+      // ─── Deep space background ───
+      ctx.fillStyle = "#030108"; ctx.fillRect(0, 0, w, h);
 
-      // Nebula clouds (static positioned, visible)
-      const drawNebula = (nx, ny, radius, r, g, b, alpha) => {
-        const nb = ctx.createRadialGradient(nx, ny, 0, nx, ny, radius);
-        nb.addColorStop(0, `rgba(${r},${g},${b},${alpha})`);
-        nb.addColorStop(0.4, `rgba(${r},${g},${b},${alpha * 0.4})`);
-        nb.addColorStop(1, "transparent");
-        ctx.fillStyle = nb;
-        ctx.fillRect(nx - radius, ny - radius, radius * 2, radius * 2);
-      };
-      // Purple nebula clusters — key clouds only for performance
-      drawNebula(w * 0.12, h * 0.18, w * 0.35, 88, 28, 135, 0.14);
-      drawNebula(w * 0.85, h * 0.72, w * 0.3, 67, 20, 110, 0.12);
-      drawNebula(w * 0.5, h * 0.88, w * 0.35, 100, 40, 150, 0.1);
-      // Blue-purple wisps
-      drawNebula(w * 0.72, h * 0.12, w * 0.25, 40, 50, 120, 0.12);
-      // Warm accent near sun
-      drawNebula(cx, cy, w * 0.18, 120, 60, 20, 0.08);
+      // Draw cached nebula background (rendered once to offscreen canvas)
+      if (!window._nebulaCache || window._nebulaCacheW !== w || window._nebulaCacheH !== h) {
+        const offscreen = document.createElement("canvas");
+        offscreen.width = w; offscreen.height = h;
+        const oc = offscreen.getContext("2d");
+
+        const drawNeb = (nx, ny, radius, r, g, b, alpha) => {
+          const nb = oc.createRadialGradient(nx, ny, 0, nx, ny, radius);
+          nb.addColorStop(0, `rgba(${r},${g},${b},${alpha})`);
+          nb.addColorStop(0.3, `rgba(${r},${g},${b},${alpha * 0.5})`);
+          nb.addColorStop(0.6, `rgba(${r},${g},${b},${alpha * 0.15})`);
+          nb.addColorStop(1, "transparent");
+          oc.fillStyle = nb;
+          oc.fillRect(nx - radius, ny - radius, radius * 2, radius * 2);
+        };
+
+        // Layer 1: Deep base gradient — dark blue-purple wash
+        const baseGrad = oc.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.4, w * 0.8);
+        baseGrad.addColorStop(0, "rgba(15,8,40,0.6)");
+        baseGrad.addColorStop(0.5, "rgba(8,4,25,0.3)");
+        baseGrad.addColorStop(1, "transparent");
+        oc.fillStyle = baseGrad; oc.fillRect(0, 0, w, h);
+
+        // Layer 2: Large purple nebula clouds
+        drawNeb(w * 0.1, h * 0.15, w * 0.4, 80, 20, 130, 0.18);
+        drawNeb(w * 0.88, h * 0.75, w * 0.35, 60, 15, 105, 0.16);
+        drawNeb(w * 0.45, h * 0.9, w * 0.4, 95, 35, 140, 0.14);
+
+        // Layer 3: Blue nebula wisps — like your reference images
+        drawNeb(w * 0.75, h * 0.1, w * 0.3, 30, 60, 140, 0.15);
+        drawNeb(w * 0.2, h * 0.55, w * 0.25, 25, 50, 120, 0.12);
+        drawNeb(w * 0.6, h * 0.4, w * 0.2, 40, 70, 150, 0.1);
+
+        // Layer 4: Teal/cyan accents — adds color variety like Crab Nebula
+        drawNeb(w * 0.35, h * 0.3, w * 0.15, 20, 100, 120, 0.1);
+        drawNeb(w * 0.8, h * 0.45, w * 0.12, 30, 90, 110, 0.08);
+
+        // Layer 5: Warm orange/amber glow — like the center of your first reference
+        drawNeb(w * 0.5, h * 0.5, w * 0.2, 140, 70, 25, 0.1);
+        drawNeb(w * 0.3, h * 0.7, w * 0.15, 120, 50, 20, 0.08);
+
+        // Layer 6: Small bright nebula knots — pockets of denser color
+        drawNeb(w * 0.15, h * 0.35, w * 0.08, 100, 40, 160, 0.2);
+        drawNeb(w * 0.7, h * 0.65, w * 0.1, 50, 30, 120, 0.18);
+        drawNeb(w * 0.55, h * 0.15, w * 0.07, 60, 80, 160, 0.15);
+        drawNeb(w * 0.9, h * 0.25, w * 0.06, 80, 30, 100, 0.16);
+
+        // Layer 7: Dust haze — very subtle warm overlay across middle
+        const dustGrad = oc.createLinearGradient(0, h * 0.3, w, h * 0.7);
+        dustGrad.addColorStop(0, "rgba(60,30,80,0.04)");
+        dustGrad.addColorStop(0.3, "rgba(80,40,100,0.06)");
+        dustGrad.addColorStop(0.5, "rgba(50,25,70,0.05)");
+        dustGrad.addColorStop(0.7, "rgba(30,50,90,0.04)");
+        dustGrad.addColorStop(1, "rgba(20,30,60,0.03)");
+        oc.fillStyle = dustGrad; oc.fillRect(0, 0, w, h);
+
+        // Layer 8: Fine star dust — tiny scattered bright points
+        for (let i = 0; i < 80; i++) {
+          const dx = Math.random() * w; const dy = Math.random() * h;
+          const ds = Math.random() * 1.5 + 0.3;
+          const da = Math.random() * 0.15 + 0.05;
+          const dc = Math.random() > 0.7 ? `rgba(180,160,255,${da})` : `rgba(255,255,255,${da})`;
+          oc.beginPath(); oc.arc(dx, dy, ds, 0, Math.PI * 2);
+          oc.fillStyle = dc; oc.fill();
+        }
+
+        window._nebulaCache = offscreen;
+        window._nebulaCacheW = w;
+        window._nebulaCacheH = h;
+      }
+      ctx.drawImage(window._nebulaCache, 0, 0);
 
       bgStars.forEach((s) => { s.twinkle += s.speed; const a = 0.3 + Math.sin(s.twinkle) * 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); });
 
