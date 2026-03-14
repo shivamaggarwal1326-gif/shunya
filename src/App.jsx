@@ -114,6 +114,7 @@ export default function App() {
   const [cursorBlink, setCursorBlink] = useState(false);
   const [pastEntries, setPastEntries] = useState([]);
   const [showPastEntries, setShowPastEntries] = useState(false);
+  const [selectedMoonEntry, setSelectedMoonEntry] = useState(null);
   const [mobile, setMobile] = useState(window.innerWidth < 768);
   const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 500 : Math.min(w, window.innerHeight) / 900; };
   const scaleRef = useRef(getScale());
@@ -334,7 +335,13 @@ export default function App() {
         const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * eR;
         const dist = Math.hypot(px - mx, py - my);
         const hitR = w < 768 ? Math.max(size + 22, 32) : size + 15;
-        if (dist < hitR) { setSelectedPlanet(planet); setJournalOpen(false); setShowPastEntries(false); }
+        if (dist < hitR) {
+          setSelectedPlanet(planet); setJournalOpen(false); setShowPastEntries(false); setSelectedMoonEntry(null);
+          // Auto-load past entries for moon display
+          supabase.from("journal_entries").select("*").eq("user_id", user.id).eq("planet_id", planet.id).order("created_at", { ascending: false }).then(({ data }) => {
+            setPastEntries(data || []);
+          });
+        }
       });
     };
 
@@ -731,102 +738,159 @@ export default function App() {
       )}
 
       {/* ═══════════════════════════════════════════════════════ */}
-      {/* PLANET DESCRIPTION — Full screen overlay (UPDATE 1)   */}
+      {/* PLANET VIEW — Zoomed planet with orbiting moons        */}
       {/* ═══════════════════════════════════════════════════════ */}
-      {selectedPlanet && !journalOpen && !showPastEntries && !showAgePrompt && (
+      {selectedPlanet && !journalOpen && !showAgePrompt && (
         <div style={{
           position: "absolute", inset: 0, zIndex: 20,
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          padding: mobile ? "60px 28px 40px" : "60px 40px",
-          animation: "overlayIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
-          overflowY: "auto",
+          display: "flex", flexDirection: mobile ? "column" : "row",
+          animation: "overlayIn 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
+          overflow: "hidden",
         }}>
-          {/* Close button */}
-          <button onClick={() => setSelectedPlanet(null)} style={{
-            position: "absolute", top: mobile ? 20 : 30, right: mobile ? 20 : 30,
-            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: "50%", width: 40, height: 40, color: "rgba(255,255,255,0.5)",
-            fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 25,
-          }}>✕</button>
-
-          {/* Planet glow circle */}
+          {/* ── LEFT / TOP: Planet with orbiting moons ── */}
           <div style={{
-            width: mobile ? 100 : 140, height: mobile ? 100 : 140, borderRadius: "50%",
-            background: `radial-gradient(circle, ${selectedPlanet.color}, ${selectedPlanet.color}44 60%, transparent 70%)`,
-            boxShadow: `0 0 60px ${selectedPlanet.color}66, 0 0 120px ${selectedPlanet.color}33`,
-            marginBottom: mobile ? 20 : 28,
-            animation: "planetPulse 3s ease-in-out infinite",
-          }} />
+            width: mobile ? "100%" : "45%",
+            height: mobile ? "40vh" : "100vh",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            position: "relative",
+            flexShrink: 0,
+          }}>
+            {/* Planet body — large */}
+            <div style={{
+              width: mobile ? 140 : 200, height: mobile ? 140 : 200, borderRadius: "50%",
+              background: `radial-gradient(circle at 35% 35%, rgba(255,255,255,0.2), ${selectedPlanet.color} 40%, ${selectedPlanet.color}88 80%, ${selectedPlanet.color}44 100%)`,
+              boxShadow: `0 0 40px ${selectedPlanet.color}44, 0 0 80px ${selectedPlanet.color}22, 0 0 120px ${selectedPlanet.color}11, inset -8px -8px 20px rgba(0,0,0,0.3)`,
+              animation: "planetPulse 4s ease-in-out infinite",
+              position: "relative",
+              zIndex: 2,
+            }} />
 
-          {/* Planet name */}
-          <h1 style={{
-            color: selectedPlanet.color, fontSize: mobile ? 28 : 42,
-            letterSpacing: mobile ? 6 : 12, fontWeight: 300, marginBottom: 6, textAlign: "center",
-          }}>{selectedPlanet.name}</h1>
-          <p style={{
-            color: "rgba(255,255,255,0.35)", fontSize: mobile ? 12 : 14,
-            letterSpacing: 3, marginBottom: mobile ? 24 : 36, textAlign: "center",
-          }}>{selectedPlanet.meaning}</p>
+            {/* Orbiting moons — each one is a past journal entry */}
+            {pastEntries.slice(0, moonCounts[selectedPlanet.id] || 0).map((entry, i) => {
+              const totalMoons = Math.min(pastEntries.length, moonCounts[selectedPlanet.id] || 0);
+              const orbitRadius = mobile ? 100 + i * 14 : 140 + i * 18;
+              const angleOffsetDeg = (i * 360) / Math.max(totalMoons, 1);
+              return (
+                <div key={entry.id} style={{
+                  position: "absolute",
+                  width: mobile ? 18 : 24, height: mobile ? 18 : 24, borderRadius: "50%",
+                  background: selectedMoonEntry?.id === entry.id
+                    ? `radial-gradient(circle, #fff, ${selectedPlanet.color})`
+                    : `radial-gradient(circle, rgba(255,255,255,0.8), rgba(200,200,195,0.5))`,
+                  boxShadow: selectedMoonEntry?.id === entry.id
+                    ? `0 0 12px ${selectedPlanet.color}, 0 0 24px ${selectedPlanet.color}66`
+                    : "0 0 6px rgba(255,255,255,0.2)",
+                  cursor: "pointer",
+                  zIndex: 3,
+                  transition: "box-shadow 0.3s, background 0.3s",
+                  animation: `moonOrbit${i} ${14 + i * 3}s linear infinite`,
+                  border: selectedMoonEntry?.id === entry.id ? `2px solid ${selectedPlanet.color}` : "1px solid rgba(255,255,255,0.2)",
+                }} onClick={() => setSelectedMoonEntry(selectedMoonEntry?.id === entry.id ? null : entry)}>
+                  <style>{`
+                    @keyframes moonOrbit${i} {
+                      from { transform: rotate(${angleOffsetDeg}deg) translateX(${orbitRadius}px) rotate(-${angleOffsetDeg}deg); }
+                      to { transform: rotate(${angleOffsetDeg + 360}deg) translateX(${orbitRadius}px) rotate(-${angleOffsetDeg + 360}deg); }
+                    }
+                  `}</style>
+                </div>
+              );
+            })}
 
-          {/* Description */}
-          <div style={{ maxWidth: 560, textAlign: "center" }}>
-            <h4 style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", marginBottom: 10, fontWeight: 400 }}>What it is</h4>
-            <p style={{ color: "rgba(255,255,255,0.65)", fontSize: mobile ? 13 : 15, lineHeight: 1.9, marginBottom: mobile ? 20 : 28 }}>{selectedPlanet.description}</p>
-
-            <h4 style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", marginBottom: 10, fontWeight: 400 }}>How it lives in you</h4>
-            <p style={{ color: "rgba(255,255,255,0.65)", fontSize: mobile ? 13 : 15, lineHeight: 1.9, marginBottom: mobile ? 20 : 28 }}>{selectedPlanet.howItLives}</p>
+            {/* Close button — top left */}
+            <button onClick={() => { setSelectedPlanet(null); setSelectedMoonEntry(null); setPastEntries([]); }} style={{
+              position: "absolute", top: mobile ? 16 : 24, left: mobile ? 16 : 24,
+              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: "50%", width: 36, height: 36, color: "rgba(255,255,255,0.5)",
+              fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              zIndex: 10,
+            }}>✕</button>
           </div>
 
-          {/* Moon progress */}
-          <div style={{ display: "flex", gap: mobile ? 6 : 8, marginBottom: 8 }}>
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} style={{
-                width: mobile ? 10 : 12, height: mobile ? 10 : 12, borderRadius: "50%",
-                background: i < (moonCounts[selectedPlanet.id] || 0) ? selectedPlanet.color : "rgba(255,255,255,0.1)",
-                border: `1px solid ${i < (moonCounts[selectedPlanet.id] || 0) ? selectedPlanet.color : "rgba(255,255,255,0.15)"}`,
-                transition: "all 0.3s"
-              }} />
-            ))}
-          </div>
-          <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, marginBottom: mobile ? 20 : 28 }}>
-            {moonCounts[selectedPlanet.id] || 0} / 10 moons
-          </p>
+          {/* ── RIGHT / BOTTOM: Description, moon entry, or buttons ── */}
+          <div style={{
+            flex: 1,
+            padding: mobile ? "20px 24px 40px" : "60px 50px",
+            overflowY: "auto",
+            display: "flex", flexDirection: "column",
+            justifyContent: mobile ? "flex-start" : "center",
+          }}>
+            {/* If a moon entry is selected — show it */}
+            {selectedMoonEntry ? (
+              <div style={{ animation: "fadeIn 0.3s ease" }}>
+                <button onClick={() => setSelectedMoonEntry(null)} style={{
+                  background: "none", border: "none", color: "rgba(255,255,255,0.4)",
+                  fontSize: 13, cursor: "pointer", marginBottom: 20, letterSpacing: 1, fontFamily: "Georgia, serif",
+                }}>← Back to {selectedPlanet.name}</button>
 
-          {/* Action buttons — pinned at bottom feel */}
-          <div style={{ width: "100%", maxWidth: 400 }}>
-            <button onClick={() => {
-              if (!ageGroup) {
-                setShowAgePrompt(true);
-                return;
-              }
-              // Moksha is free from questions — liberation means no structure
-              if (selectedPlanet.id === "moksha") {
-                setCurrentPrompt("");
-                setJournalOpen(true);
-                return;
-              }
-              // Pick a rotating prompt from the 224 question bank
-              const prompts = getQuestionsForPlanet(selectedPlanet.id, ageGroup);
-              const lastIdx = promptHistoryRef.current[selectedPlanet.id] ?? -1;
-              let newIdx;
-              do { newIdx = Math.floor(Math.random() * prompts.length); } while (newIdx === lastIdx && prompts.length > 1);
-              promptHistoryRef.current[selectedPlanet.id] = newIdx;
-              setCurrentPrompt(prompts[newIdx]);
-              setJournalOpen(true);
-            }} style={{
-              width: "100%", padding: mobile ? "15px" : "18px", border: "none", borderRadius: 14,
-              background: `linear-gradient(135deg, ${selectedPlanet.color}, ${selectedPlanet.color}cc)`,
-              color: "#000", fontSize: mobile ? 14 : 15, fontWeight: 700, cursor: "pointer",
-              letterSpacing: 1, fontFamily: "Georgia, serif",
-              boxShadow: `0 4px 24px ${selectedPlanet.color}44`,
-            }}>✦ Start Journaling</button>
-            <button onClick={() => loadPastEntries(selectedPlanet.id)} style={{
-              width: "100%", padding: mobile ? "13px" : "15px", background: "transparent",
-              border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
-              color: "rgba(255,255,255,0.4)", fontSize: 13, cursor: "pointer",
-              letterSpacing: 1, marginTop: 12, fontFamily: "Georgia, serif",
-            }}>View Past Entries</button>
+                <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>
+                  {new Date(selectedMoonEntry.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+                <p style={{
+                  color: "rgba(255,255,255,0.75)", fontSize: mobile ? 15 : 17,
+                  lineHeight: 2, fontFamily: "Georgia, serif",
+                }}>{selectedMoonEntry.content}</p>
+
+                {selectedMoonEntry.reveal_at && new Date(selectedMoonEntry.reveal_at) > new Date() && (
+                  <p style={{ color: "rgba(255,215,0,0.4)", fontSize: 12, marginTop: 20, fontStyle: "italic" }}>
+                    🔒 Sealed until {new Date(selectedMoonEntry.reveal_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                  </p>
+                )}
+              </div>
+            ) : (
+              /* Default: Planet description + buttons */
+              <div style={{ animation: "fadeIn 0.3s ease" }}>
+                <h1 style={{
+                  color: selectedPlanet.color, fontSize: mobile ? 26 : 40,
+                  letterSpacing: mobile ? 5 : 10, fontWeight: 300, marginBottom: 6,
+                }}>{selectedPlanet.name}</h1>
+                <p style={{
+                  color: "rgba(255,255,255,0.3)", fontSize: mobile ? 11 : 13,
+                  letterSpacing: 3, marginBottom: mobile ? 20 : 32,
+                }}>{selectedPlanet.meaning}</p>
+
+                <h4 style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8, fontWeight: 400 }}>What it is</h4>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: mobile ? 13 : 15, lineHeight: 1.9, marginBottom: mobile ? 16 : 24 }}>{selectedPlanet.description}</p>
+
+                <h4 style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8, fontWeight: 400 }}>How it lives in you</h4>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: mobile ? 13 : 15, lineHeight: 1.9, marginBottom: mobile ? 20 : 32 }}>{selectedPlanet.howItLives}</p>
+
+                {/* Moon progress */}
+                <div style={{ display: "flex", gap: mobile ? 6 : 8, marginBottom: 8 }}>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} style={{
+                      width: mobile ? 9 : 11, height: mobile ? 9 : 11, borderRadius: "50%",
+                      background: i < (moonCounts[selectedPlanet.id] || 0) ? selectedPlanet.color : "rgba(255,255,255,0.1)",
+                      border: `1px solid ${i < (moonCounts[selectedPlanet.id] || 0) ? selectedPlanet.color : "rgba(255,255,255,0.12)"}`,
+                      transition: "all 0.3s"
+                    }} />
+                  ))}
+                </div>
+                <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, marginBottom: mobile ? 20 : 28 }}>
+                  {moonCounts[selectedPlanet.id] || 0} / 10 moons · Click a moon to revisit
+                </p>
+
+                {/* Buttons */}
+                <div style={{ maxWidth: 380 }}>
+                  <button onClick={() => {
+                    if (!ageGroup) { setShowAgePrompt(true); return; }
+                    if (selectedPlanet.id === "moksha") { setCurrentPrompt(""); setJournalOpen(true); return; }
+                    const prompts = getQuestionsForPlanet(selectedPlanet.id, ageGroup);
+                    const lastIdx = promptHistoryRef.current[selectedPlanet.id] ?? -1;
+                    let newIdx;
+                    do { newIdx = Math.floor(Math.random() * prompts.length); } while (newIdx === lastIdx && prompts.length > 1);
+                    promptHistoryRef.current[selectedPlanet.id] = newIdx;
+                    setCurrentPrompt(prompts[newIdx]);
+                    setJournalOpen(true);
+                  }} style={{
+                    width: "100%", padding: mobile ? "15px" : "18px", border: "none", borderRadius: 14,
+                    background: `linear-gradient(135deg, ${selectedPlanet.color}, ${selectedPlanet.color}cc)`,
+                    color: "#000", fontSize: mobile ? 14 : 15, fontWeight: 700, cursor: "pointer",
+                    letterSpacing: 1, fontFamily: "Georgia, serif",
+                    boxShadow: `0 4px 24px ${selectedPlanet.color}44`,
+                  }}>✦ Start Journaling</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
