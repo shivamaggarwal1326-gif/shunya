@@ -60,6 +60,7 @@ export default function App() {
   const scaleRef = useRef(getScale());
   const animFrameRef = useRef(null);
   const shootingStarsRef = useRef([]);
+  const mergingMoons = useRef([]);
   const mouseRef = useRef({ x: 0, y: 0 });
   const timeRef = useRef(0);
 
@@ -112,10 +113,38 @@ export default function App() {
     const cur = moonCounts[selectedPlanet.id] || 0; const next = cur + 1;
     await supabase.from("moon_progress").update({ moon_count: next >= 10 ? 0 : next }).eq("user_id", user.id).eq("planet_id", selectedPlanet.id);
     if (next >= 10) {
+      // Spawn merge animation — moons fly toward the sun
+      const w = window.innerWidth; const h = window.innerHeight;
+      const sunCx = w < 768 ? w / 2 : w * 0.55;
+      const sunCy = h / 2;
+      const scale = scaleRef.current;
+      const eR = w < 768 ? 0.65 : 0.4;
+      const t = timeRef.current;
+      const pAngle = t * selectedPlanet.speed;
+      const pOrbit = selectedPlanet.baseOrbit * scale;
+      const planetX = sunCx + Math.cos(pAngle) * pOrbit;
+      const planetY = sunCy + Math.sin(pAngle) * pOrbit * eR;
+      const pSize = Math.max(selectedPlanet.baseSize * scale, 10);
+
+      // Create 10 moon particles at different positions around the planet
+      for (let i = 0; i < 10; i++) {
+        const moonAngle = (i * Math.PI * 2) / 10;
+        const moonDist = pSize + 10 + i * 3;
+        mergingMoons.current.push({
+          startX: planetX + Math.cos(moonAngle) * moonDist,
+          startY: planetY + Math.sin(moonAngle) * moonDist * 0.6,
+          progress: -i * 0.06, // stagger the start so they don't all fly at once
+        });
+      }
+
       const mult = (sunSize / SUN_BASE_SIZE) + 0.1;
       const { data: pd } = await supabase.from("profiles").select("total_merges").eq("id", user.id).single();
       await supabase.from("profiles").update({ sun_size: mult, total_merges: (pd?.total_merges || 0) + 1 }).eq("id", user.id);
-      setSunSize(SUN_BASE_SIZE * mult); setMoonCounts((p) => ({ ...p, [selectedPlanet.id]: 0 }));
+      // Delay the sun growth so it happens AFTER moons arrive
+      setTimeout(() => {
+        setSunSize(SUN_BASE_SIZE * mult);
+      }, 1200);
+      setMoonCounts((p) => ({ ...p, [selectedPlanet.id]: 0 }));
     } else { setMoonCounts((p) => ({ ...p, [selectedPlanet.id]: next })); }
     setJournalText(""); setSaving(false);
   };
@@ -258,16 +287,86 @@ export default function App() {
       PLANETS.forEach((p) => { const o = p.baseOrbit * scale; ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2); ctx.strokeStyle = "rgba(255,255,255,0.04)"; ctx.lineWidth = 1; ctx.stroke(); });
 
       const csz = sunSize * scale;
-      const sg = ctx.createRadialGradient(cx, cy, 0, cx, cy, csz * 3);
-      sg.addColorStop(0, "rgba(245,166,35,0.6)"); sg.addColorStop(0.5, "rgba(245,166,35,0.1)"); sg.addColorStop(1, "transparent");
-      ctx.fillStyle = sg; ctx.fillRect(cx - csz * 3, cy - csz * 3, csz * 6, csz * 6);
-      const sg2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, csz);
-      sg2.addColorStop(0, "#fff8e7"); sg2.addColorStop(0.5, "#f5a623"); sg2.addColorStop(1, "#e8912d");
-      ctx.beginPath(); ctx.arc(cx, cy, csz, 0, Math.PI * 2); ctx.fillStyle = sg2; ctx.fill();
-      ctx.fillStyle = "rgba(245,166,35,0.8)"; ctx.font = `${Math.max(9, 11 * scale)}px Georgia`; ctx.textAlign = "center";
-      ctx.fillText("SHUNYA", cx, cy + csz + 16);
-
       const t = timeRef.current;
+
+      // ─── FIERY SUN ───
+      // Corona / outer fire halo (flickering)
+      for (let f = 0; f < 5; f++) {
+        const flareAngle = t * 0.0003 + f * Math.PI * 0.4;
+        const flareLen = csz * (1.8 + Math.sin(t * 0.002 + f * 2.5) * 0.6);
+        const flareWidth = csz * (0.3 + Math.sin(t * 0.003 + f * 1.7) * 0.15);
+        const fx = cx + Math.cos(flareAngle) * csz * 0.5;
+        const fy = cy + Math.sin(flareAngle) * csz * 0.5;
+        const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, flareLen);
+        fg.addColorStop(0, `rgba(255,200,50,${0.15 + Math.sin(t * 0.004 + f) * 0.08})`);
+        fg.addColorStop(0.5, `rgba(255,120,20,${0.06 + Math.sin(t * 0.003 + f) * 0.03})`);
+        fg.addColorStop(1, "transparent");
+        ctx.fillStyle = fg;
+        ctx.fillRect(fx - flareLen, fy - flareLen, flareLen * 2, flareLen * 2);
+      }
+
+      // Outer glow
+      const sg = ctx.createRadialGradient(cx, cy, csz * 0.5, cx, cy, csz * 3.5);
+      sg.addColorStop(0, "rgba(255,180,50,0.5)");
+      sg.addColorStop(0.3, "rgba(255,120,20,0.15)");
+      sg.addColorStop(0.6, "rgba(255,80,10,0.05)");
+      sg.addColorStop(1, "transparent");
+      ctx.fillStyle = sg; ctx.fillRect(cx - csz * 3.5, cy - csz * 3.5, csz * 7, csz * 7);
+
+      // Sun body - base
+      const sg2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, csz);
+      sg2.addColorStop(0, "#fffde8");
+      sg2.addColorStop(0.25, "#ffe66d");
+      sg2.addColorStop(0.5, "#f5a623");
+      sg2.addColorStop(0.75, "#e8762d");
+      sg2.addColorStop(1, "#c0501a");
+      ctx.beginPath(); ctx.arc(cx, cy, csz, 0, Math.PI * 2); ctx.fillStyle = sg2; ctx.fill();
+
+      // Animated plasma surface (rotating bright spots)
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, csz, 0, Math.PI * 2); ctx.clip();
+      for (let s = 0; s < 8; s++) {
+        const spotAngle = t * 0.0006 + s * Math.PI * 0.25;
+        const spotR = csz * (0.15 + Math.sin(t * 0.002 + s * 3) * 0.08);
+        const spotDist = csz * (0.3 + Math.sin(t * 0.001 + s * 1.5) * 0.25);
+        const sx = cx + Math.cos(spotAngle) * spotDist;
+        const sy = cy + Math.sin(spotAngle) * spotDist;
+        const spotG = ctx.createRadialGradient(sx, sy, 0, sx, sy, spotR);
+        spotG.addColorStop(0, `rgba(255,255,220,${0.3 + Math.sin(t * 0.003 + s) * 0.15})`);
+        spotG.addColorStop(0.5, `rgba(255,200,80,${0.1 + Math.sin(t * 0.002 + s) * 0.05})`);
+        spotG.addColorStop(1, "transparent");
+        ctx.fillStyle = spotG;
+        ctx.fillRect(sx - spotR, sy - spotR, spotR * 2, spotR * 2);
+      }
+      ctx.restore();
+
+      // Specular highlight on sun
+      const sunHL = ctx.createRadialGradient(cx - csz * 0.25, cy - csz * 0.25, 0, cx, cy, csz * 0.7);
+      sunHL.addColorStop(0, "rgba(255,255,255,0.2)"); sunHL.addColorStop(1, "transparent");
+      ctx.beginPath(); ctx.arc(cx, cy, csz, 0, Math.PI * 2); ctx.fillStyle = sunHL; ctx.fill();
+
+      // Sun label
+      ctx.fillStyle = "rgba(245,166,35,0.8)"; ctx.font = `${Math.max(9, 11 * scale)}px Georgia`; ctx.textAlign = "center";
+      ctx.fillText("SHUNYA", cx, cy + csz + 18);
+
+      // ─── MOON MERGE ANIMATION ───
+      mergingMoons.current = mergingMoons.current.filter((m) => {
+        m.progress += 0.012;
+        if (m.progress >= 1) return false;
+        const ease = 1 - Math.pow(1 - m.progress, 3); // ease-out cubic
+        const mx = m.startX + (cx - m.startX) * ease;
+        const my = m.startY + (cy - m.startY) * ease;
+        const mSize = (1 - ease) * 3 + 1;
+        const mAlpha = 1 - ease * 0.7;
+        // Trail
+        const trG = ctx.createRadialGradient(mx, my, 0, mx, my, mSize * 4);
+        trG.addColorStop(0, `rgba(255,200,50,${mAlpha * 0.4})`); trG.addColorStop(1, "transparent");
+        ctx.fillStyle = trG; ctx.fillRect(mx - mSize * 4, my - mSize * 4, mSize * 8, mSize * 8);
+        // Moon body
+        ctx.beginPath(); ctx.arc(mx, my, mSize, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${mAlpha})`; ctx.fill();
+        return true;
+      });
       PLANETS.forEach((p) => {
         const angle = t * p.speed; const orbit = p.baseOrbit * scale; const size = Math.max(p.baseSize * scale, w < 768 ? 12 : 10);
         const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * eR;
