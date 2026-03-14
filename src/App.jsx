@@ -226,7 +226,21 @@ export default function App() {
     setUser(authUser); setCheckingAuth(false);
   };
 
-  const handleAuth = (u, n) => { onboardingInProgress.current = false; setUser(u); setAnonymousName(n); loadUserData(u); };
+  const handleAuth = (u, n, suggestedPlanetId) => {
+    onboardingInProgress.current = false; setUser(u); setAnonymousName(n); loadUserData(u);
+    // If mood selector suggested a planet, auto-open it after a short delay
+    if (suggestedPlanetId) {
+      setTimeout(() => {
+        const planet = PLANETS.find(p => p.id === suggestedPlanetId);
+        if (planet) {
+          setSelectedPlanet(planet);
+          supabase.from("journal_entries").select("*").eq("user_id", u.id).eq("planet_id", planet.id).order("created_at", { ascending: false }).then(({ data }) => {
+            setPastEntries(data || []);
+          });
+        }
+      }, 800);
+    }
+  };
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setAnonymousName(""); setMoonCounts({}); setSunSize(SUN_BASE_SIZE); setStarsCollected(0); starsRef.current = 0; };
 
   const saveJournalEntry = async () => {
@@ -644,66 +658,166 @@ export default function App() {
         const angle = t * p.speed; const orbit = p.baseOrbit * scale; const size = Math.max(p.baseSize * scale, w < 768 ? 14 : 10);
         const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * eR;
         const pulseSize = size * (1 + Math.sin(t * 0.001 + p.baseOrbit) * 0.06);
-        const glowRadius = pulseSize * (3.5 + Math.sin(t * 0.0015 + p.baseOrbit) * 1);
+        const glowRadius = pulseSize * (4 + Math.sin(t * 0.0015 + p.baseOrbit) * 1.2);
 
-        // Rotation angle for this planet (each spins at different speed)
         const spinSpeed = 0.0008 + p.baseOrbit * 0.0000005;
         const spinAngle = t * spinSpeed;
         const hlOffsetX = Math.cos(spinAngle) * size * 0.3;
-        const hlOffsetY = Math.sin(spinAngle) * size * 0.15; // flatter because we see it from above
+        const hlOffsetY = Math.sin(spinAngle) * size * 0.15;
 
-        // Outer glow
+        // ── Outer glow — stronger, double layer ──
         const gl = ctx.createRadialGradient(px, py, 0, px, py, glowRadius);
-        gl.addColorStop(0, p.glow); gl.addColorStop(0.5, p.glow.replace("0.4", "0.08")); gl.addColorStop(1, "transparent");
+        gl.addColorStop(0, p.glow); gl.addColorStop(0.3, p.glow.replace("0.4", "0.12")); gl.addColorStop(0.6, p.glow.replace("0.4", "0.04")); gl.addColorStop(1, "transparent");
         ctx.fillStyle = gl; ctx.fillRect(px - glowRadius, py - glowRadius, glowRadius * 2, glowRadius * 2);
+
+        // Second glow layer for depth
+        const gl2 = ctx.createRadialGradient(px, py, 0, px, py, glowRadius * 0.6);
+        gl2.addColorStop(0, p.glow.replace("0.4", "0.25")); gl2.addColorStop(1, "transparent");
+        ctx.fillStyle = gl2; ctx.fillRect(px - glowRadius * 0.6, py - glowRadius * 0.6, glowRadius * 1.2, glowRadius * 1.2);
 
         // Shadow underneath
         ctx.beginPath(); ctx.ellipse(px + 2, py + size + 4, size * 0.7, size * 0.15, 0, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fill();
+        ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fill();
 
-        // Planet base body (darker side)
-        const darkSide = ctx.createRadialGradient(px + hlOffsetX * 0.5, py + hlOffsetY * 0.5, size * 0.3, px, py, pulseSize);
-        darkSide.addColorStop(0, p.color); darkSide.addColorStop(1, p.color + "55");
-        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = darkSide; ctx.fill();
+        // ── Planet base body — unique per planet ──
+        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2);
+        const baseGrad = ctx.createRadialGradient(px + hlOffsetX * 0.3, py + hlOffsetY * 0.3, size * 0.1, px, py, pulseSize);
 
-        // Terminator line effect (day/night boundary that rotates)
+        if (p.id === "aatma") {
+          // Molten copper core — volcanic, burning soul
+          baseGrad.addColorStop(0, "#ffd4a8");
+          baseGrad.addColorStop(0.3, "#e07840");
+          baseGrad.addColorStop(0.7, "#a04520");
+          baseGrad.addColorStop(1, "#4a1a08");
+        } else if (p.id === "pranaa") {
+          // Electric teal core — bioluminescent, alive
+          baseGrad.addColorStop(0, "#b8fff5");
+          baseGrad.addColorStop(0.3, "#4ecdc4");
+          baseGrad.addColorStop(0.7, "#1a8a80");
+          baseGrad.addColorStop(1, "#0a3a36");
+        } else if (p.id === "kaal") {
+          // Deep violet — swirling time, cosmic mystery
+          baseGrad.addColorStop(0, "#d4b8ff");
+          baseGrad.addColorStop(0.3, "#a78bfa");
+          baseGrad.addColorStop(0.7, "#6d4aad");
+          baseGrad.addColorStop(1, "#2a1650");
+        } else if (p.id === "dharma") {
+          // Bright pink-magenta — purpose, passion
+          baseGrad.addColorStop(0, "#ffd6f7");
+          baseGrad.addColorStop(0.3, "#f093fb");
+          baseGrad.addColorStop(0.7, "#b050c8");
+          baseGrad.addColorStop(1, "#4a1055");
+        } else if (p.id === "moksha") {
+          // Pure gold core — radiant liberation
+          baseGrad.addColorStop(0, "#fffbe8");
+          baseGrad.addColorStop(0.3, "#ffd700");
+          baseGrad.addColorStop(0.7, "#c8a000");
+          baseGrad.addColorStop(1, "#5a4800");
+        } else if (p.id === "karma") {
+          // Burning red — fire, consequence
+          baseGrad.addColorStop(0, "#ffc8c8");
+          baseGrad.addColorStop(0.3, "#ff6b6b");
+          baseGrad.addColorStop(0.7, "#c82020");
+          baseGrad.addColorStop(1, "#4a0808");
+        } else if (p.id === "prema") {
+          // Rose gold — warm, soft, glowing love
+          baseGrad.addColorStop(0, "#ffe8f0");
+          baseGrad.addColorStop(0.3, "#e8a0bf");
+          baseGrad.addColorStop(0.7, "#b06888");
+          baseGrad.addColorStop(1, "#4a2038");
+        } else if (p.id === "maya") {
+          // Iridescent pink shifting — illusion, shimmer
+          baseGrad.addColorStop(0, "#ffd0e8");
+          baseGrad.addColorStop(0.3, "#fd79a8");
+          baseGrad.addColorStop(0.7, "#c03070");
+          baseGrad.addColorStop(1, "#3a0820");
+        }
+        ctx.fillStyle = baseGrad; ctx.fill();
+
+        // ── Surface texture per planet ──
         ctx.save();
         ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.clip();
+
+        if (p.id === "aatma") {
+          // Volcanic surface cracks
+          for (let i = 0; i < 3; i++) {
+            const crackAngle = spinAngle + i * 2.1;
+            ctx.beginPath();
+            ctx.moveTo(px + Math.cos(crackAngle) * size * 0.2, py + Math.sin(crackAngle) * size * 0.15);
+            ctx.lineTo(px + Math.cos(crackAngle + 0.5) * size * 0.8, py + Math.sin(crackAngle + 0.3) * size * 0.6);
+            ctx.strokeStyle = "rgba(255,160,60,0.15)"; ctx.lineWidth = 1.5; ctx.stroke();
+          }
+        } else if (p.id === "pranaa") {
+          // Bioluminescent veins
+          for (let i = 0; i < 4; i++) {
+            const vAngle = spinAngle * 0.5 + i * 1.6;
+            ctx.beginPath();
+            ctx.arc(px + Math.cos(vAngle) * size * 0.4, py + Math.sin(vAngle) * size * 0.3, size * 0.15, 0, Math.PI);
+            ctx.strokeStyle = "rgba(180,255,240,0.12)"; ctx.lineWidth = 1; ctx.stroke();
+          }
+        } else if (p.id === "kaal") {
+          // Time spiral rings
+          ctx.beginPath(); ctx.ellipse(px, py, pulseSize * 0.7, pulseSize * 0.2, spinAngle * 0.2, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(200,180,255,0.1)"; ctx.lineWidth = 1; ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(px, py, pulseSize * 0.5, pulseSize * 0.15, spinAngle * 0.3 + 0.5, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(200,180,255,0.08)"; ctx.lineWidth = 0.8; ctx.stroke();
+        } else if (p.id === "moksha") {
+          // Golden energy corona
+          for (let i = 0; i < 6; i++) {
+            const rAngle = spinAngle * 0.3 + i * Math.PI / 3;
+            const rLen = size * (0.6 + Math.sin(t * 0.003 + i) * 0.2);
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(px + Math.cos(rAngle) * rLen, py + Math.sin(rAngle) * rLen * 0.7);
+            ctx.strokeStyle = "rgba(255,230,100,0.08)"; ctx.lineWidth = 2; ctx.stroke();
+          }
+        } else if (p.id === "karma") {
+          // Burning streaks
+          for (let i = 0; i < 3; i++) {
+            const sAngle = spinAngle + i * 2.2;
+            ctx.beginPath();
+            ctx.arc(px + Math.cos(sAngle) * size * 0.3, py + Math.sin(sAngle) * size * 0.25, size * 0.3, sAngle, sAngle + 1.2);
+            ctx.strokeStyle = "rgba(255,120,80,0.12)"; ctx.lineWidth = 1.5; ctx.stroke();
+          }
+        } else if (p.id === "prema") {
+          // Soft warm inner glow pulse
+          const premaGlow = ctx.createRadialGradient(px, py, 0, px, py, size * 0.5);
+          premaGlow.addColorStop(0, `rgba(255,200,220,${0.08 + Math.sin(t * 0.002) * 0.04})`);
+          premaGlow.addColorStop(1, "transparent");
+          ctx.fillStyle = premaGlow;
+          ctx.fillRect(px - size * 0.5, py - size * 0.5, size, size);
+        }
+
+        // Terminator line (day/night) — all planets
         const termX = px + hlOffsetX * 2;
         const termGrad = ctx.createLinearGradient(termX - size, py, termX + size, py);
-        termGrad.addColorStop(0, "rgba(0,0,0,0.25)");
-        termGrad.addColorStop(0.45, "rgba(0,0,0,0.08)");
+        termGrad.addColorStop(0, "rgba(0,0,0,0.3)");
+        termGrad.addColorStop(0.45, "rgba(0,0,0,0.1)");
         termGrad.addColorStop(0.55, "transparent");
         termGrad.addColorStop(1, "transparent");
         ctx.fillStyle = termGrad;
         ctx.fillRect(px - pulseSize, py - pulseSize, pulseSize * 2, pulseSize * 2);
         ctx.restore();
 
-        // Specular highlight (moves with rotation)
+        // ── Specular highlight — brighter, sharper ──
         const specX = px - hlOffsetX * 0.8;
         const specY = py - size * 0.25 + hlOffsetY * 0.5;
-        const hl = ctx.createRadialGradient(specX, specY, 0, specX, specY, size * 0.7);
-        hl.addColorStop(0, "rgba(255,255,255,0.4)");
-        hl.addColorStop(0.3, "rgba(255,255,255,0.12)");
+        const hl = ctx.createRadialGradient(specX, specY, 0, specX, specY, size * 0.6);
+        hl.addColorStop(0, "rgba(255,255,255,0.55)");
+        hl.addColorStop(0.2, "rgba(255,255,255,0.2)");
+        hl.addColorStop(0.5, "rgba(255,255,255,0.05)");
         hl.addColorStop(1, "transparent");
         ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = hl; ctx.fill();
 
-        // Subtle equator band (surface detail)
-        ctx.save();
-        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.clip();
-        ctx.beginPath(); ctx.ellipse(px, py, pulseSize * 0.95, pulseSize * 0.12, spinAngle * 0.3, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255,255,255,0.06)`;
-        ctx.lineWidth = 1; ctx.stroke();
-        ctx.restore();
-
-        // Rim light (atmosphere edge glow)
-        const rim = ctx.createRadialGradient(px, py, pulseSize * 0.85, px, py, pulseSize * 1.05);
+        // ── Rim light — stronger atmosphere glow ──
+        const rim = ctx.createRadialGradient(px, py, pulseSize * 0.82, px, py, pulseSize * 1.1);
         rim.addColorStop(0, "transparent");
-        rim.addColorStop(0.7, p.color + "15");
-        rim.addColorStop(1, p.color + "08");
-        ctx.beginPath(); ctx.arc(px, py, pulseSize * 1.05, 0, Math.PI * 2); ctx.fillStyle = rim; ctx.fill();
+        rim.addColorStop(0.6, p.color + "20");
+        rim.addColorStop(0.85, p.color + "12");
+        rim.addColorStop(1, p.color + "06");
+        ctx.beginPath(); ctx.arc(px, py, pulseSize * 1.1, 0, Math.PI * 2); ctx.fillStyle = rim; ctx.fill();
 
-        // Planet name — colored to match planet
+        // Planet name
         ctx.fillStyle = p.color; ctx.font = `${Math.max(8, 10 * scale)}px Georgia`; ctx.textAlign = "center";
         ctx.globalAlpha = 0.8; ctx.fillText(p.name, px, py + size + 16); ctx.globalAlpha = 1.0;
 
