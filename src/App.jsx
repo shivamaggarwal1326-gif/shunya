@@ -1087,48 +1087,85 @@ export default function App() {
 
       {/* Top bar — Desktop */}
       {!mobile && !hasOverlay && (
-        <>
-          <div style={{ position: "absolute", top: 20, left: 24, zIndex: 10, display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ color: "#f5a623", fontSize: 18, letterSpacing: 6, fontWeight: 300 }}>SHUNYA</span>
-            <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, letterSpacing: 2 }}>Journey Within</span>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
+          {/* Top bar content */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 28px" }}>
+            {/* Left — Logo + tagline */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <span style={{ color: "#f5a623", fontSize: 18, letterSpacing: 8, fontWeight: 300, textShadow: "0 0 20px rgba(245,166,35,0.15)" }}>SHUNYA</span>
+              <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
+              <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, letterSpacing: 3, textTransform: "uppercase" }}>For your 3 AM thoughts</span>
+            </div>
+            {/* Right — Nav items */}
+            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              <button onClick={() => setShowPlanetNav(!showPlanetNav)} style={{
+                background: showPlanetNav ? "rgba(245,166,35,0.1)" : "transparent",
+                border: `1px solid ${showPlanetNav ? "rgba(245,166,35,0.25)" : "rgba(255,255,255,0.08)"}`,
+                borderRadius: 10, padding: "7px 16px", cursor: "pointer",
+                color: showPlanetNav ? "#f5a623" : "rgba(255,255,255,0.45)",
+                fontSize: 11, letterSpacing: 1.5, fontFamily: "Georgia, serif",
+                transition: "all 0.3s", display: "flex", alignItems: "center", gap: 6,
+              }}><span style={{ fontSize: 8 }}>✦</span> Planets</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "rgba(255,215,0,0.05)", borderRadius: 8, border: "1px solid rgba(255,215,0,0.1)" }}>
+                <span style={{ color: "rgba(255,215,0,0.9)", fontSize: 12 }}>★</span>
+                <span style={{ color: "rgba(255,215,0,0.7)", fontSize: 12, fontFamily: "Georgia, serif" }}>{starsCollected}</span>
+              </div>
+              <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.06)" }} />
+              <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, letterSpacing: 1, fontFamily: "Georgia, serif" }}>{anonymousName}</span>
+              <button onClick={handleLogout} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "6px 14px", color: "rgba(255,255,255,0.3)", fontSize: 10, cursor: "pointer", letterSpacing: 1.5, transition: "all 0.3s" }}>EXIT</button>
+            </div>
           </div>
-          <div style={{ position: "absolute", top: 20, right: 24, zIndex: 10, display: "flex", alignItems: "center", gap: 16 }}>
-            <button onClick={() => setShowPlanetNav(!showPlanetNav)} style={{ background: showPlanetNav ? "rgba(245,166,35,0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${showPlanetNav ? "rgba(245,166,35,0.3)" : "rgba(255,255,255,0.1)"}`, borderRadius: 10, padding: "7px 14px", color: showPlanetNav ? "#f5a623" : "rgba(255,255,255,0.5)", fontSize: 11, cursor: "pointer", letterSpacing: 1, fontFamily: "Georgia, serif", transition: "all 0.3s" }}>✦ Planets</button>
-            <span style={{ color: "rgba(255,215,0,0.8)", fontSize: 13 }}>★ {starsCollected}</span>
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, letterSpacing: 1 }}>{anonymousName}</span>
-            <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 14px", color: "rgba(255,255,255,0.4)", fontSize: 11, cursor: "pointer", letterSpacing: 1 }}>EXIT</button>
-          </div>
-        </>
+          {/* Golden accent line */}
+          <div style={{ height: 1, background: "linear-gradient(90deg, transparent 5%, rgba(245,166,35,0.15) 20%, rgba(245,166,35,0.08) 50%, rgba(245,166,35,0.15) 80%, transparent 95%)" }} />
+        </div>
       )}
 
       {/* Top bar — Mobile */}
       {mobile && !hasOverlay && (
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 70%, transparent 100%)" }}>
-          <span style={{ color: "#f5a623", fontSize: 14, letterSpacing: 4, fontWeight: 300 }}>SHUNYA</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={() => setShowPlanetNav(!showPlanetNav)} style={{ background: showPlanetNav ? "rgba(245,166,35,0.15)" : "rgba(255,255,255,0.08)", border: `1px solid ${showPlanetNav ? "rgba(245,166,35,0.25)" : "rgba(255,255,255,0.1)"}`, borderRadius: 6, padding: "5px 10px", color: showPlanetNav ? "#f5a623" : "rgba(255,255,255,0.4)", fontSize: 9, cursor: "pointer", letterSpacing: 1, fontFamily: "Georgia, serif" }}>✦</button>
-            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, maxWidth: 70, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{anonymousName}</span>
-            <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 10px", color: "rgba(255,255,255,0.4)", fontSize: 10, cursor: "pointer" }}>EXIT</button>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: "#f5a623", fontSize: 14, letterSpacing: 5, fontWeight: 300 }}>SHUNYA</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button onClick={() => setShowPlanetNav(!showPlanetNav)} style={{
+                background: showPlanetNav ? "rgba(245,166,35,0.12)" : "rgba(255,255,255,0.06)",
+                border: `1px solid ${showPlanetNav ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.08)"}`,
+                borderRadius: 8, padding: "6px 10px", cursor: "pointer",
+                color: showPlanetNav ? "#f5a623" : "rgba(255,255,255,0.4)",
+                fontSize: 9, letterSpacing: 1, fontFamily: "Georgia, serif",
+              }}>✦ Planets</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", background: "rgba(255,215,0,0.05)", borderRadius: 6, border: "1px solid rgba(255,215,0,0.1)" }}>
+                <span style={{ color: "rgba(255,215,0,0.8)", fontSize: 10 }}>★</span>
+                <span style={{ color: "rgba(255,215,0,0.6)", fontSize: 10 }}>{starsCollected}</span>
+              </div>
+              <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, padding: "4px 10px", color: "rgba(255,255,255,0.3)", fontSize: 9, cursor: "pointer" }}>EXIT</button>
+            </div>
           </div>
+          {/* Golden accent line — mobile */}
+          <div style={{ height: 1, background: "linear-gradient(90deg, transparent 5%, rgba(245,166,35,0.12) 30%, rgba(245,166,35,0.06) 50%, rgba(245,166,35,0.12) 70%, transparent 95%)" }} />
         </div>
       )}
 
       {/* ═══════════════════════════════════════ */}
-      {/* PLANET NAV — Quick access sidebar        */}
+      {/* PLANET NAV — Quick access dropdown       */}
       {/* ═══════════════════════════════════════ */}
       {showPlanetNav && !hasOverlay && (
         <div style={{
           position: "absolute",
-          top: mobile ? 52 : 56, right: mobile ? 8 : 20,
+          top: mobile ? 56 : 58, right: mobile ? 8 : 20,
           zIndex: 15,
-          background: "rgba(8,6,18,0.9)", backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 18, padding: mobile ? "12px 10px" : "16px 14px",
-          display: "flex", flexDirection: "column", gap: mobile ? 4 : 6,
-          animation: "overlayIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
-          minWidth: mobile ? 170 : 200,
+          background: "rgba(6,4,16,0.92)", backdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.06)",
+          borderRadius: 20, padding: mobile ? "10px 8px" : "12px 10px",
+          display: "flex", flexDirection: "column", gap: 2,
+          animation: "overlayIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+          boxShadow: "0 16px 48px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.05)",
+          minWidth: mobile ? 190 : 220,
         }}>
+          {/* Nav header */}
+          <p style={{ color: "rgba(255,255,255,0.15)", fontSize: 9, letterSpacing: 3, textTransform: "uppercase", padding: "6px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.04)", marginBottom: 4 }}>Navigate</p>
+
           {PLANETS.map((p) => (
             <button key={p.id} onClick={() => {
               setShowPlanetNav(false);
@@ -1139,34 +1176,20 @@ export default function App() {
               });
             }} style={{
               display: "flex", alignItems: "center", gap: mobile ? 10 : 12,
-              padding: mobile ? "10px 12px" : "10px 14px",
+              padding: mobile ? "9px 14px" : "10px 14px",
               background: "transparent", border: "none", borderRadius: 12,
-              cursor: "pointer", transition: "all 0.2s",
-              textAlign: "left",
+              cursor: "pointer", transition: "background 0.2s",
+              textAlign: "left", width: "100%",
             }}>
-              <div style={{ width: mobile ? 10 : 12, height: mobile ? 10 : 12, borderRadius: "50%", background: p.color, boxShadow: `0 0 8px ${p.color}44`, flexShrink: 0 }} />
-              <div>
-                <span style={{ color: p.color, fontSize: mobile ? 11 : 12, letterSpacing: 2, fontFamily: "Georgia, serif", display: "block" }}>{p.name}</span>
-                <span style={{ color: "rgba(255,255,255,0.2)", fontSize: mobile ? 8 : 9, letterSpacing: 1 }}>{p.meaning}</span>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.color, boxShadow: `0 0 6px ${p.color}55`, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <span style={{ color: "rgba(255,255,255,0.7)", fontSize: mobile ? 11 : 12, letterSpacing: 1.5, fontFamily: "Georgia, serif", display: "block" }}>{p.name}</span>
               </div>
               {(moonCounts[p.id] || 0) > 0 && (
-                <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.15)", fontSize: mobile ? 8 : 9 }}>{moonCounts[p.id]} ☽</span>
+                <span style={{ color: p.color, fontSize: mobile ? 8 : 9, opacity: 0.5 }}>{moonCounts[p.id]}☽</span>
               )}
             </button>
           ))}
-        </div>
-      )}
-
-      {/* Stars counter — bottom right on mobile, top bar on desktop */}
-      {mobile && !hasOverlay && (
-        <div style={{
-          position: "absolute", bottom: 20, right: 16, zIndex: 10,
-          background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)",
-          border: "1px solid rgba(255,215,0,0.15)", borderRadius: 20,
-          padding: "8px 16px", display: "flex", alignItems: "center", gap: 6,
-        }}>
-          <span style={{ color: "rgba(255,215,0,0.9)", fontSize: 13 }}>★</span>
-          <span style={{ color: "rgba(255,215,0,0.7)", fontSize: 13, fontFamily: "Georgia, serif" }}>{starsCollected}</span>
         </div>
       )}
 
