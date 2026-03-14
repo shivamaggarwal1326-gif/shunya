@@ -204,7 +204,7 @@ export default function AuthPage({ onAuth, onSignupStart }) {
         {mode === "signup" && (
           <div style={{ marginTop: mobile ? 28 : 36 }}>
             <p style={{ color: "rgba(255,255,255,0.45)", fontSize: mobile ? 10 : 11, lineHeight: 1.8, maxWidth: 340, margin: "0 auto" }}>
-              No email needed. No data collected. Just pick a username you will remember — your initials, a nickname, anything.
+              No email needed. No real name. Pick a username only you know — your thoughts stay anonymous, always.
             </p>
             <p style={{ color: "rgba(255,107,107,0.5)", fontSize: mobile ? 9 : 10, marginTop: 14, lineHeight: 1.5 }}>
               No password recovery exists. Write it somewhere safe.
