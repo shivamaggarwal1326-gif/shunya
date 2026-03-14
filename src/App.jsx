@@ -835,9 +835,9 @@ export default function App() {
           zIndex: 10, maxWidth: mobile ? "75%" : 500, textAlign: "center",
         }}>
           <p style={{
-            color: "rgba(255,255,255,0.2)", fontSize: mobile ? 10 : 12,
-            fontFamily: "Georgia, serif", fontStyle: "italic", lineHeight: 1.6,
-            letterSpacing: 0.5,
+            color: "rgba(255,255,255,0.55)", fontSize: mobile ? 11 : 14,
+            fontFamily: "Georgia, serif", fontStyle: "italic", lineHeight: 1.7,
+            letterSpacing: 0.8, textShadow: "0 0 20px rgba(147,51,234,0.15)",
           }}>{getDailyQuote()}</p>
         </div>
       )}
