@@ -79,14 +79,19 @@ export default function App() {
   const [pastEntries, setPastEntries] = useState([]);
   const [showPastEntries, setShowPastEntries] = useState(false);
   const [mobile, setMobile] = useState(window.innerWidth < 768);
-  const scaleRef = useRef(Math.min(window.innerWidth, window.innerHeight) / 1100);
+  const getScale = () => {
+    const w = window.innerWidth;
+    if (w < 768) return w / 580; // Mobile: scale based on width, spread planets out more
+    return Math.min(w, window.innerHeight) / 1100; // Desktop: use smaller dimension
+  };
+  const scaleRef = useRef(getScale());
   const animFrameRef = useRef(null);
   const shootingStarsRef = useRef([]);
   const mouseRef = useRef({ x: 0, y: 0 });
   const timeRef = useRef(0);
 
   useEffect(() => {
-    const h = () => { setMobile(window.innerWidth < 768); scaleRef.current = Math.min(window.innerWidth, window.innerHeight) / 1100; };
+    const h = () => { setMobile(window.innerWidth < 768); scaleRef.current = getScale(); };
     window.addEventListener("resize", h);
     return () => window.removeEventListener("resize", h);
   }, []);
@@ -149,7 +154,7 @@ export default function App() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; scaleRef.current = Math.min(window.innerWidth, window.innerHeight) / 1100; };
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; scaleRef.current = getScale(); };
     resize(); window.addEventListener("resize", resize);
 
     const bgStars = Array.from({ length: 200 }, () => ({
@@ -173,12 +178,13 @@ export default function App() {
 
     const handleInteraction = (mx, my) => {
       const cx = canvas.width / 2; const cy = canvas.height / 2; const scale = scaleRef.current;
+      const ellipseRatio = canvas.width < 768 ? 0.65 : 0.4;
       shootingStarsRef.current.forEach((star) => { const d = Math.hypot(star.x - mx, star.y - my); if (d < 40 && star.slowing) { star.caught = true; collectStar(); } });
       const t = timeRef.current;
       PLANETS.forEach((planet) => {
         const angle = t * planet.speed; const orbit = planet.baseOrbit * scale;
         const size = Math.max(planet.baseSize * scale, 12);
-        const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * 0.4;
+        const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * ellipseRatio;
         const dist = Math.hypot(px - mx, py - my);
         const hitR = window.innerWidth < 768 ? Math.max(size + 22, 32) : size + 15;
         if (dist < hitR) { setSelectedPlanet(planet); setJournalOpen(false); setShowPastEntries(false); }
@@ -194,6 +200,7 @@ export default function App() {
       const w = canvas.width; const h = canvas.height;
       const cx = w / 2; const cy = h / 2;
       const scale = scaleRef.current;
+      const ellipseRatio = w < 768 ? 0.65 : 0.4; // Taller orbits on mobile
       timeRef.current += 16;
 
       ctx.fillStyle = "#000005"; ctx.fillRect(0, 0, w, h);
@@ -206,7 +213,7 @@ export default function App() {
 
       PLANETS.forEach((planet) => {
         const orbit = planet.baseOrbit * scale;
-        ctx.beginPath(); ctx.ellipse(cx, cy, orbit, orbit * 0.4, 0, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.ellipse(cx, cy, orbit, orbit * ellipseRatio, 0, 0, Math.PI * 2);
         ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.lineWidth = 1; ctx.stroke();
       });
 
@@ -226,7 +233,7 @@ export default function App() {
       PLANETS.forEach((planet) => {
         const angle = t * planet.speed; const orbit = planet.baseOrbit * scale;
         const size = Math.max(planet.baseSize * scale, 8);
-        const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * 0.4;
+        const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * ellipseRatio;
 
         const glow = ctx.createRadialGradient(px, py, 0, px, py, size * 3);
         glow.addColorStop(0, planet.glow); glow.addColorStop(1, "transparent");
