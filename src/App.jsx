@@ -86,9 +86,20 @@ function getQuestionsForPlanet(planetId, ageGroup) {
   const planetQs = QUESTIONS[planetId];
   if (!planetQs) return ["What is on your mind today?"];
   if (ageGroup && planetQs[ageGroup]) return planetQs[ageGroup];
-  // Fallback: merge all age groups if no age set
   return Object.values(planetQs).flat();
 }
+
+// ─── Comets — real named comets with philosophical questions ───
+const COMETS = [
+  { name: "Halley's Comet", fact: "Returns every 75 years", question: "What keeps coming back to you no matter how far you run from it?", color: "#87ceeb", tailColor: "130,206,235" },
+  { name: "Comet Neowise", fact: "Will not return for 6,800 years", question: "What have you witnessed that no one else will ever see the same way?", color: "#c4b5fd", tailColor: "196,181,253" },
+  { name: "Hale-Bopp", fact: "Visible to the naked eye for 18 months", question: "What truth has been staring you in the face, waiting to be acknowledged?", color: "#fbbf24", tailColor: "251,191,36" },
+  { name: "Comet Lovejoy", fact: "Survived passing through the sun's corona", question: "What fire have you walked through that should have destroyed you but did not?", color: "#34d399", tailColor: "52,211,153" },
+  { name: "Comet ISON", fact: "Broke apart approaching the sun", question: "What part of you had to break before you could become who you are now?", color: "#f472b6", tailColor: "244,114,182" },
+  { name: "Comet Hyakutake", fact: "Passed closer to Earth than any comet in 200 years", question: "Who has come closest to truly knowing you?", color: "#60a5fa", tailColor: "96,165,250" },
+  { name: "Encke's Comet", fact: "Shortest orbital period — 3.3 years", question: "What cycle in your life repeats the fastest and why have you not broken it?", color: "#fb923c", tailColor: "251,146,60" },
+  { name: "Comet McNaught", fact: "Brightest comet seen in over 40 years", question: "When was the last time you let yourself shine without dimming for others?", color: "#e2e8f0", tailColor: "226,232,240" },
+];
 
 const SUN_BASE_SIZE = 38;
 
@@ -159,12 +170,14 @@ export default function App() {
   const [showDharmaTodos, setShowDharmaTodos] = useState(false);
   const [newTodoText, setNewTodoText] = useState("");
   const [newTodoPriority, setNewTodoPriority] = useState("medium");
+  const [activeComet, setActiveComet] = useState(null); // currently visible comet question
   const [mobile, setMobile] = useState(window.innerWidth < 768);
   const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 900 : Math.min(w, window.innerHeight) / 900; };
   const scaleRef = useRef(getScale());
   const animFrameRef = useRef(null);
   const shootingStarsRef = useRef([]);
   const mergingMoons = useRef([]);
+  const cometsRef = useRef([]);
   const mouseRef = useRef({ x: 0, y: 0 });
   const timeRef = useRef(0);
 
@@ -383,6 +396,27 @@ export default function App() {
     };
     const shootingInterval = setInterval(spawnShootingStar, 3000);
 
+    // Comet spawning — random comet every 30-60 seconds
+    const spawnComet = () => {
+      if (cometsRef.current.length >= 1) return; // max 1 comet at a time
+      const comet = COMETS[Math.floor(Math.random() * COMETS.length)];
+      const fromLeft = Math.random() > 0.5;
+      const w = window.innerWidth; const h = window.innerHeight;
+      cometsRef.current.push({
+        ...comet,
+        x: fromLeft ? -50 : w + 50,
+        y: Math.random() * h * 0.6 + h * 0.1,
+        vx: fromLeft ? (1 + Math.random() * 0.8) : -(1 + Math.random() * 0.8),
+        vy: (Math.random() - 0.5) * 0.5,
+        size: 5 + Math.random() * 3,
+        life: 1,
+        tailParticles: [],
+      });
+    };
+    const cometInterval = setInterval(spawnComet, 30000 + Math.random() * 30000);
+    // Spawn first comet after 10 seconds
+    setTimeout(spawnComet, 10000);
+
     // Smooth cursor position (the actual cursor lerps toward this)
     const cursorTarget = { x: 0, y: 0 };
     const cursorSmooth = { x: 0, y: 0 };
@@ -408,6 +442,11 @@ export default function App() {
       const cx = w < 768 ? w / 2 : w * 0.55; const cy = h / 2; const scale = scaleRef.current;
       const eR = w < 768 ? 0.85 : 0.4;
       shootingStarsRef.current.forEach((star) => { const d = Math.hypot(star.x - mx, star.y - my); if (d < 50) { star.caught = true; collectStar(); } });
+      // Check comet clicks
+      cometsRef.current.forEach((comet) => {
+        const d = Math.hypot(comet.x - mx, comet.y - my);
+        if (d < 40) { setActiveComet({ name: comet.name, fact: comet.fact, question: comet.question, color: comet.color }); }
+      });
       const t = timeRef.current;
       PLANETS.forEach((planet) => {
         const angle = t * planet.speed; const orbit = planet.baseOrbit * scale;
@@ -724,6 +763,55 @@ export default function App() {
         return true;
       });
 
+      // ─── Comets ───
+      cometsRef.current = cometsRef.current.filter((c) => {
+        c.x += c.vx;
+        c.y += c.vy;
+
+        // Add tail particles
+        c.tailParticles.push({ x: c.x, y: c.y, life: 1 });
+        if (c.tailParticles.length > 60) c.tailParticles.shift();
+
+        // Remove if off screen
+        if (c.x < -100 || c.x > w + 100) return false;
+
+        // Draw tail
+        for (let tp = 0; tp < c.tailParticles.length; tp++) {
+          const p = c.tailParticles[tp];
+          p.life -= 0.018;
+          if (p.life <= 0) continue;
+          const tSize = c.size * p.life * 0.6;
+          const tGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, tSize * 2);
+          tGrad.addColorStop(0, `rgba(${c.tailColor},${p.life * 0.4})`);
+          tGrad.addColorStop(1, "transparent");
+          ctx.fillStyle = tGrad;
+          ctx.fillRect(p.x - tSize * 2, p.y - tSize * 2, tSize * 4, tSize * 4);
+        }
+
+        // Draw comet head — bright core with glow
+        const headGlow = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.size * 4);
+        headGlow.addColorStop(0, `rgba(${c.tailColor},0.5)`);
+        headGlow.addColorStop(0.5, `rgba(${c.tailColor},0.15)`);
+        headGlow.addColorStop(1, "transparent");
+        ctx.fillStyle = headGlow;
+        ctx.fillRect(c.x - c.size * 4, c.y - c.size * 4, c.size * 8, c.size * 8);
+
+        ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2);
+        const coreGrad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.size);
+        coreGrad.addColorStop(0, "#ffffff");
+        coreGrad.addColorStop(0.4, c.color);
+        coreGrad.addColorStop(1, `rgba(${c.tailColor},0.5)`);
+        ctx.fillStyle = coreGrad; ctx.fill();
+
+        // Draw comet name label
+        ctx.fillStyle = `rgba(${c.tailColor},0.5)`;
+        ctx.font = `${mobile ? 9 : 11}px Georgia`;
+        ctx.textAlign = "center";
+        ctx.fillText(c.name, c.x, c.y - c.size - 8);
+
+        return true;
+      });
+
       // ─── Black hole gravitational trail ───
       for (let i = cursorTrail.length - 1; i >= 0; i--) {
         const p = cursorTrail[i];
@@ -745,7 +833,7 @@ export default function App() {
     };
     render(performance.now());
 
-    return () => { cancelAnimationFrame(animFrameRef.current); clearInterval(shootingInterval); window.removeEventListener("resize", resize); window.removeEventListener("mousemove", handleMouse); window.removeEventListener("touchmove", handleTouchMove); canvas.removeEventListener("click", handleClick); canvas.removeEventListener("touchstart", handleTap); };
+    return () => { cancelAnimationFrame(animFrameRef.current); clearInterval(shootingInterval); clearInterval(cometInterval); window.removeEventListener("resize", resize); window.removeEventListener("mousemove", handleMouse); window.removeEventListener("touchmove", handleTouchMove); canvas.removeEventListener("click", handleClick); canvas.removeEventListener("touchstart", handleTap); };
   }, [user, moonCounts, sunSize]);
 
   // ─── Screens ───
@@ -839,6 +927,61 @@ export default function App() {
             fontFamily: "Georgia, serif", fontStyle: "italic", lineHeight: 1.7,
             letterSpacing: 0.8, textShadow: "0 0 20px rgba(147,51,234,0.15)",
           }}>{getDailyQuote()}</p>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════ */}
+      {/* COMET — Philosophical question popup     */}
+      {/* ═══════════════════════════════════════ */}
+      {activeComet && !selectedPlanet && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 20,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          animation: "overlayIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+        }}>
+          {/* Close on background click */}
+          <div onClick={() => setActiveComet(null)} style={{ position: "absolute", inset: 0 }} />
+
+          <div style={{
+            position: "relative", zIndex: 2, maxWidth: mobile ? "90vw" : 480,
+            padding: mobile ? "32px 28px" : "44px 40px", textAlign: "center",
+            background: "rgba(10,8,20,0.85)", backdropFilter: "blur(20px)",
+            border: `1px solid ${activeComet.color}33`, borderRadius: 24,
+            boxShadow: `0 0 40px ${activeComet.color}15, 0 20px 60px rgba(0,0,0,0.5)`,
+          }}>
+            {/* Comet icon */}
+            <div style={{
+              width: 12, height: 12, borderRadius: "50%", margin: "0 auto 16px",
+              background: activeComet.color, boxShadow: `0 0 15px ${activeComet.color}66`,
+            }} />
+
+            {/* Comet name */}
+            <h3 style={{
+              color: activeComet.color, fontSize: mobile ? 16 : 20,
+              letterSpacing: mobile ? 3 : 5, fontWeight: 300, marginBottom: 6,
+              fontFamily: "Georgia, serif",
+            }}>{activeComet.name}</h3>
+
+            {/* Fact */}
+            <p style={{
+              color: "rgba(255,255,255,0.25)", fontSize: mobile ? 10 : 12,
+              letterSpacing: 1.5, marginBottom: mobile ? 24 : 32,
+            }}>{activeComet.fact}</p>
+
+            {/* The philosophical question */}
+            <p style={{
+              color: "rgba(255,255,255,0.75)", fontSize: mobile ? 15 : 18,
+              lineHeight: 1.9, fontFamily: "Georgia, serif", fontStyle: "italic",
+            }}>"{activeComet.question}"</p>
+
+            {/* Dismiss */}
+            <button onClick={() => setActiveComet(null)} style={{
+              marginTop: mobile ? 24 : 32, padding: "10px 28px",
+              background: "rgba(255,255,255,0.05)", border: `1px solid ${activeComet.color}33`,
+              borderRadius: 12, color: "rgba(255,255,255,0.4)",
+              fontSize: 12, cursor: "pointer", fontFamily: "Georgia, serif", letterSpacing: 1.5,
+            }}>Continue Exploring</button>
+          </div>
         </div>
       )}
 
