@@ -21,9 +21,9 @@ const PLANETS = [
   { id: "karma", name: "KARMA", meaning: "Action · कर्म", color: "#ff6b6b", glow: "rgba(255,107,107,0.4)", baseSize: 16, baseOrbit: 650, speed: 0.0002,
     description: "Karma is not punishment. It is the simple truth that every action creates a ripple. What you do, what you say, what you think — it all echoes forward. Karma is the universe keeping a ledger.",
     howItLives: "When you feel guilt, pride, consequence, or the weight of choices — that is Karma speaking. Journal here to process your actions and their echoes." },
-  { id: "akasha", name: "AKASHA", meaning: "Space · आकाश", color: "#74b9ff", glow: "rgba(116,185,255,0.4)", baseSize: 17, baseOrbit: 720, speed: 0.00015,
-    description: "Akasha is the infinite space — the ether that holds everything and nothing. It is the canvas on which the universe paints. Without Akasha, there is no room for anything to exist.",
-    howItLives: "When you feel overwhelmed, cluttered, suffocated — Akasha is asking you to create space. Journal here when you need room to breathe, to think, to simply be." },
+  { id: "prema", name: "PREMA", meaning: "Love · प्रेम", color: "#e8a0bf", glow: "rgba(232,160,191,0.4)", baseSize: 17, baseOrbit: 720, speed: 0.00015,
+    description: "Prema is love — not the love sold in movies or reduced to Valentine's cards. It is the force that holds atoms together and makes strangers weep at sunsets. It is what you feel when words fail and the heart overflows.",
+    howItLives: "When you ache for someone. When you are grateful for someone. When love has hurt you or healed you or both at once — that is Prema. Journal here about the people who have shaped your heart." },
   { id: "maya", name: "MAYA", meaning: "Illusion · माया", color: "#fd79a8", glow: "rgba(253,121,168,0.4)", baseSize: 12, baseOrbit: 780, speed: 0.00012,
     description: "Maya is the grand illusion — the veil that makes you believe the temporary is permanent, the material is everything, and the ego is who you truly are. Maya is not evil. It is the game.",
     howItLives: "When you catch yourself chasing something hollow, believing a lie you told yourself, or living someone else's life — that is Maya. Journal here to see through the illusion." }
@@ -67,11 +67,11 @@ const QUESTIONS = {
     "31-45": ["Who do you owe an apology to including yourself","What have you been doing for years that you know is not aligned with your values","What patterns from your parents have you unconsciously inherited","What does your track record say about what you actually prioritise","What would change if you fully forgave yourself for one specific thing","What are you still punishing yourself for that has already been long enough","What would you do differently if you genuinely believed you deserved good things"],
     "45+": ["What would you do differently if you could go back and can you still do it now","What have you carried for decades that was never yours to carry","Who in your life deserves more than they have received from you","What do you wish you had said to someone you can no longer say it to","What would forgiving yourself for one thing completely change right now","What pattern ends with you if you choose to end it","What do you want to make right before it is too late to make it right"]
   },
-  akasha: {
-    "16-22": ["Name one person in your life you have never properly thanked and why not","What do you have right now that you would miss desperately if it disappeared tomorrow","What beauty exists in your ordinary day that you scroll past","What are you taking for granted about your body right now","Who has shown up for you recently that you have not acknowledged","What small thing happened today that was actually kind of miraculous","What would you notice if you paid full attention to your life for just one hour"],
-    "23-30": ["What do you have right now that your past self would have been desperate for","What are you chasing so hard that you cannot see what is already here","What relationship in your life do you undervalue because it has always been there","What about your current life would feel like a dream to you five years ago","What are you waiting to appreciate until after it is gone","What ordinary Wednesday of your life would you give anything to relive","What is quietly wonderful about your life right now that you rarely acknowledge"],
-    "31-45": ["When did you last stop and feel genuinely lucky to be alive","What do you have that people all over the world are praying for right now","What relationships have you been maintaining on autopilot that deserve more presence","What about your body are you criticising that is actually working incredibly hard for you","What would change if you spent one week genuinely grateful for what already is","What memory from your life makes you feel rich when you really sit with it","What have you been overlooking in your daily life that is actually extraordinary"],
-    "45+": ["What has life given you that you never asked for but cannot imagine living without","What are you grateful for now that you were too busy to appreciate when it was new","What moments from your life do you return to when you need to feel that it was worth it","What love have you received that you have never fully let yourself feel","What small daily thing would you miss most if it was gone tomorrow","What does abundance actually look like in your life right now","If you wrote a letter of gratitude to your life what would it say"]
+  prema: {
+    "16-22": ["Who do you love right now that you have not told","What does love feel like in your body when it is real","What did love teach you that nothing else could have","Who made you feel seen for the first time and what did that change in you","What are you afraid to say to someone you care about","If you could send one honest message to someone tonight what would it say","What does love mean to you right now at this age and has it changed"],
+    "23-30": ["Who have you loved the most and did they know the full depth of it","What have you learned about love that your younger self needed to hear","What are you looking for in love that you have not found yet","What pattern do you keep repeating in relationships and where did it start","Who do you miss right now that you pretend you do not","What does healthy love actually look like to you not what you were taught","What are you afraid love will cost you if you let it in completely"],
+    "31-45": ["What has love cost you and was it worth it","Who in your life loves you in a way you have not fully received","What do you wish you had said to someone when you still had the chance","What does your partner or closest person need from you that you have been withholding","What did your parents teach you about love that you are still unlearning","When did you last feel truly loved not needed not wanted but loved","What would change in your closest relationship if you were fully honest for one day"],
+    "45+": ["What is the greatest love story of your life and have you told it","Who loved you in a way you did not understand until much later","What do you know about love now that took you decades to learn","What love have you lost that still lives inside you","If you could say one thing to everyone you have ever loved what would it be","What does love ask of you at this stage of your life","What would you want the people you love most to know if you could not tell them tomorrow"]
   },
   maya: {
     "16-22": ["Who do you pretend to be around people whose approval you want","What do you post about yourself that is not really you","What do you believe about yourself that came from someone else's words","What would you do differently if nobody was watching your life","What are you afraid people would think if they knew the real you","What mask are you wearing so often you have almost forgotten it is a mask","What do you want that you are ashamed to admit you want"],
@@ -148,12 +148,19 @@ export default function App() {
     return () => document.removeEventListener("touchmove", preventZoom);
   }, []);
 
+  // Track if we're in the middle of signup onboarding
+  const onboardingInProgress = useRef(false);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) loadUserData(session.user); else setCheckingAuth(false);
+      if (session?.user && !onboardingInProgress.current) loadUserData(session.user); else setCheckingAuth(false);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
       if (!session) { setUser(null); setAnonymousName(""); }
+      // Don't auto-login during onboarding
+      if (session?.user && !onboardingInProgress.current && !user) {
+        loadUserData(session.user);
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -166,7 +173,7 @@ export default function App() {
     setUser(authUser); setCheckingAuth(false);
   };
 
-  const handleAuth = (u, n) => { setUser(u); setAnonymousName(n); loadUserData(u); };
+  const handleAuth = (u, n) => { onboardingInProgress.current = false; setUser(u); setAnonymousName(n); loadUserData(u); };
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setAnonymousName(""); setMoonCounts({}); setSunSize(SUN_BASE_SIZE); setStarsCollected(0); starsRef.current = 0; };
 
   const saveJournalEntry = async () => {
@@ -707,7 +714,7 @@ export default function App() {
       <p style={{ color: "rgba(255,255,255,0.3)", fontFamily: "Georgia", letterSpacing: "4px" }}>SHUNYA</p>
     </div>
   );
-  if (!user) return <AuthPage onAuth={handleAuth} />;
+  if (!user) return <AuthPage onAuth={handleAuth} onSignupStart={() => { onboardingInProgress.current = true; }} />;
 
   // ─── Overlay: determines what's shown over the solar system ───
   const hasOverlay = selectedPlanet !== null || showAgePrompt || showDharmaTodos;
