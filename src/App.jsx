@@ -3,7 +3,7 @@ import { supabase } from "./supabaseClient";
 import AuthPage from "./AuthPage";
 
 const PLANETS = [
-  { id: "aatma", name: "AATMA", meaning: "The Soul · आत्मा", color: "#f5a623", glow: "rgba(245,166,35,0.4)", baseSize: 18, baseOrbit: 160, speed: 0.0005,
+  { id: "aatma", name: "AATMA", meaning: "The Soul · आत्मा", color: "#e07840", glow: "rgba(224,120,64,0.4)", baseSize: 18, baseOrbit: 160, speed: 0.0005,
     description: "Aatma is the eternal soul — the part of you that existed before your name, your wounds, and your achievements. It is not your personality. It is not your story. It is the awareness behind all of it.",
     howItLives: "When you sit in silence and feel something ancient — something that was here before your first memory — that is Aatma. Journal here when you want to speak from beyond identity.",
     journalPrompt: "What truth would remain if everything about your life was stripped away?" },
@@ -271,37 +271,79 @@ export default function App() {
       PLANETS.forEach((p) => {
         const angle = t * p.speed; const orbit = p.baseOrbit * scale; const size = Math.max(p.baseSize * scale, w < 768 ? 12 : 10);
         const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * eR;
-        const pulseSize = size * (1 + Math.sin(t * 0.001 + p.baseOrbit) * 0.08);
+        const pulseSize = size * (1 + Math.sin(t * 0.001 + p.baseOrbit) * 0.06);
         const glowRadius = pulseSize * (3.5 + Math.sin(t * 0.0015 + p.baseOrbit) * 1);
+
+        // Rotation angle for this planet (each spins at different speed)
+        const spinSpeed = 0.0008 + p.baseOrbit * 0.0000005;
+        const spinAngle = t * spinSpeed;
+        const hlOffsetX = Math.cos(spinAngle) * size * 0.3;
+        const hlOffsetY = Math.sin(spinAngle) * size * 0.15; // flatter because we see it from above
 
         // Outer glow
         const gl = ctx.createRadialGradient(px, py, 0, px, py, glowRadius);
-        gl.addColorStop(0, p.glow); gl.addColorStop(0.5, p.glow.replace("0.4", "0.1")); gl.addColorStop(1, "transparent");
+        gl.addColorStop(0, p.glow); gl.addColorStop(0.5, p.glow.replace("0.4", "0.08")); gl.addColorStop(1, "transparent");
         ctx.fillStyle = gl; ctx.fillRect(px - glowRadius, py - glowRadius, glowRadius * 2, glowRadius * 2);
 
-        // Shadow underneath (depth effect)
-        ctx.beginPath(); ctx.ellipse(px + 2, py + size + 4, size * 0.8, size * 0.2, 0, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fill();
+        // Shadow underneath
+        ctx.beginPath(); ctx.ellipse(px + 2, py + size + 4, size * 0.7, size * 0.15, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fill();
 
-        // Planet body with gradient
-        const pg = ctx.createRadialGradient(px - size * 0.3, py - size * 0.3, size * 0.1, px, py, pulseSize);
-        pg.addColorStop(0, "#ffffff"); pg.addColorStop(0.15, p.color); pg.addColorStop(1, p.color + "88");
-        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = pg; ctx.fill();
+        // Planet base body (darker side)
+        const darkSide = ctx.createRadialGradient(px + hlOffsetX * 0.5, py + hlOffsetY * 0.5, size * 0.3, px, py, pulseSize);
+        darkSide.addColorStop(0, p.color); darkSide.addColorStop(1, p.color + "55");
+        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = darkSide; ctx.fill();
 
-        // Planet inner highlight (specular)
-        const hl = ctx.createRadialGradient(px - size * 0.35, py - size * 0.35, 0, px, py, size);
-        hl.addColorStop(0, "rgba(255,255,255,0.35)"); hl.addColorStop(0.5, "rgba(255,255,255,0.05)"); hl.addColorStop(1, "transparent");
+        // Terminator line effect (day/night boundary that rotates)
+        ctx.save();
+        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.clip();
+        const termX = px + hlOffsetX * 2;
+        const termGrad = ctx.createLinearGradient(termX - size, py, termX + size, py);
+        termGrad.addColorStop(0, "rgba(0,0,0,0.25)");
+        termGrad.addColorStop(0.45, "rgba(0,0,0,0.08)");
+        termGrad.addColorStop(0.55, "transparent");
+        termGrad.addColorStop(1, "transparent");
+        ctx.fillStyle = termGrad;
+        ctx.fillRect(px - pulseSize, py - pulseSize, pulseSize * 2, pulseSize * 2);
+        ctx.restore();
+
+        // Specular highlight (moves with rotation)
+        const specX = px - hlOffsetX * 0.8;
+        const specY = py - size * 0.25 + hlOffsetY * 0.5;
+        const hl = ctx.createRadialGradient(specX, specY, 0, specX, specY, size * 0.7);
+        hl.addColorStop(0, "rgba(255,255,255,0.4)");
+        hl.addColorStop(0.3, "rgba(255,255,255,0.12)");
+        hl.addColorStop(1, "transparent");
         ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = hl; ctx.fill();
 
+        // Subtle equator band (surface detail)
+        ctx.save();
+        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.clip();
+        ctx.beginPath(); ctx.ellipse(px, py, pulseSize * 0.95, pulseSize * 0.12, spinAngle * 0.3, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,255,255,0.06)`;
+        ctx.lineWidth = 1; ctx.stroke();
+        ctx.restore();
+
+        // Rim light (atmosphere edge glow)
+        const rim = ctx.createRadialGradient(px, py, pulseSize * 0.85, px, py, pulseSize * 1.05);
+        rim.addColorStop(0, "transparent");
+        rim.addColorStop(0.7, p.color + "15");
+        rim.addColorStop(1, p.color + "08");
+        ctx.beginPath(); ctx.arc(px, py, pulseSize * 1.05, 0, Math.PI * 2); ctx.fillStyle = rim; ctx.fill();
+
         // Planet name — colored to match planet
-        ctx.fillStyle = p.color; ctx.font = `${Math.max(7, 9 * scale)}px Georgia`; ctx.textAlign = "center";
-        ctx.globalAlpha = 0.75; ctx.fillText(p.name, px, py + size + 14); ctx.globalAlpha = 1.0;
+        ctx.fillStyle = p.color; ctx.font = `${Math.max(8, 10 * scale)}px Georgia`; ctx.textAlign = "center";
+        ctx.globalAlpha = 0.8; ctx.fillText(p.name, px, py + size + 16); ctx.globalAlpha = 1.0;
 
         const mc = moonCounts[p.id] || 0;
         for (let i = 0; i < mc; i++) {
-          const ma = t * 0.002 + (i * Math.PI * 2) / Math.max(mc, 1); const md = size + 8 + i * 2.5;
+          const ma = t * 0.002 + (i * Math.PI * 2) / Math.max(mc, 1); const md = size + 10 + i * 3;
           const mmx = px + Math.cos(ma) * md; const mmy = py + Math.sin(ma) * md * 0.6;
-          ctx.beginPath(); ctx.arc(mmx, mmy, Math.max(1.5, 2.5 * scale), 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.fill();
+          // Moon glow
+          const mg = ctx.createRadialGradient(mmx, mmy, 0, mmx, mmy, Math.max(3, 5 * scale));
+          mg.addColorStop(0, "rgba(255,255,255,0.5)"); mg.addColorStop(1, "transparent");
+          ctx.fillStyle = mg; ctx.fillRect(mmx - 5 * scale, mmy - 5 * scale, 10 * scale, 10 * scale);
+          ctx.beginPath(); ctx.arc(mmx, mmy, Math.max(1.5, 2.5 * scale), 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.fill();
         }
       });
 
