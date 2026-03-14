@@ -151,17 +151,20 @@ export default function App() {
     }));
 
     const spawnShootingStar = () => {
-      shootingStarsRef.current.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height * 0.5,
+      shootingStarsRef.current.push({ x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight * 0.5,
         vx: (Math.random() - 0.3) * 6, vy: Math.random() * 3 + 2, life: 1, size: Math.random() * 2 + 1, caught: false, slowing: false });
     };
     const shootingInterval = setInterval(spawnShootingStar, 3000);
 
+    // Smooth cursor position (the actual cursor lerps toward this)
+    const cursorTarget = { x: 0, y: 0 };
+    const cursorSmooth = { x: 0, y: 0 };
+    let lastFrameTime = performance.now();
+
     const handleMouse = (e) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
-      cursorTrail.push({ x: e.clientX, y: e.clientY, life: 1, size: Math.random() * 8 + 4 });
-      if (cursorTrail.length > 30) cursorTrail.shift();
-      const cursorEl = document.getElementById("shunya-cursor");
-      if (cursorEl) { cursorEl.style.left = e.clientX + "px"; cursorEl.style.top = e.clientY + "px"; }
+      cursorTarget.x = e.clientX;
+      cursorTarget.y = e.clientY;
     };
     const handleTouchMove = (e) => {
       if (e.touches.length > 0) {
@@ -194,10 +197,26 @@ export default function App() {
     canvas.addEventListener("click", handleClick);
     canvas.addEventListener("touchstart", handleTap, { passive: false });
 
-    const render = () => {
+    const render = (now) => {
+      const dt = Math.min(now - lastFrameTime, 50); // cap at 50ms to avoid jumps
+      lastFrameTime = now;
       const w = window.innerWidth; const h = window.innerHeight; const cx = w / 2; const cy = h / 2;
       const scale = scaleRef.current; const eR = w < 768 ? 0.65 : 0.4;
-      timeRef.current += 16;
+      timeRef.current += dt;
+
+      // Smooth cursor interpolation (lerp)
+      cursorSmooth.x += (cursorTarget.x - cursorSmooth.x) * 0.18;
+      cursorSmooth.y += (cursorTarget.y - cursorSmooth.y) * 0.18;
+      const cursorEl = document.getElementById("shunya-cursor");
+      if (cursorEl) { cursorEl.style.left = cursorSmooth.x + "px"; cursorEl.style.top = cursorSmooth.y + "px"; }
+
+      // Spawn trail particles in render loop for consistent spacing
+      if (Math.abs(cursorTarget.x - (cursorTrail.length > 0 ? cursorTrail[cursorTrail.length - 1].x : 0)) > 3 ||
+          Math.abs(cursorTarget.y - (cursorTrail.length > 0 ? cursorTrail[cursorTrail.length - 1].y : 0)) > 3) {
+        cursorTrail.push({ x: cursorSmooth.x, y: cursorSmooth.y, life: 1, size: Math.random() * 6 + 3 });
+        if (cursorTrail.length > 25) cursorTrail.shift();
+      }
+
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = "#000005"; ctx.fillRect(0, 0, w, h);
@@ -272,7 +291,7 @@ export default function App() {
       ctx.restore();
       animFrameRef.current = requestAnimationFrame(render);
     };
-    render();
+    render(performance.now());
 
     return () => { cancelAnimationFrame(animFrameRef.current); clearInterval(shootingInterval); window.removeEventListener("resize", resize); window.removeEventListener("mousemove", handleMouse); window.removeEventListener("touchmove", handleTouchMove); canvas.removeEventListener("click", handleClick); canvas.removeEventListener("touchstart", handleTap); };
   }, [user, moonCounts, sunSize]);
@@ -294,16 +313,16 @@ export default function App() {
       {!mobile && (
         <div id="shunya-cursor" style={{
           position: "fixed", pointerEvents: "none", zIndex: 9999,
-          width: 20, height: 20, borderRadius: "50%",
+          width: 24, height: 24, borderRadius: "50%",
           background: "radial-gradient(circle, rgba(168,85,247,0.9) 0%, rgba(124,58,237,0.4) 50%, transparent 70%)",
-          boxShadow: "0 0 12px rgba(147,51,234,0.6), 0 0 30px rgba(124,58,237,0.3)",
+          boxShadow: "0 0 14px rgba(147,51,234,0.6), 0 0 35px rgba(124,58,237,0.3)",
           transform: "translate(-50%, -50%)",
           left: 0, top: 0,
-          transition: "width 0.15s, height 0.15s, box-shadow 0.15s",
+          willChange: "transform, left, top",
         }} />
       )}
       {/* Canvas — always runs, gets blurred when overlay is open */}
-      <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, transition: "filter 0.5s ease", filter: hasOverlay ? "blur(8px) brightness(0.4)" : "none" }} />
+      <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, transition: "filter 0.7s cubic-bezier(0.16, 1, 0.3, 1)", filter: hasOverlay ? "blur(10px) brightness(0.35)" : "none" }} />
 
       {/* Top bar — Desktop */}
       {!mobile && !hasOverlay && (
@@ -340,7 +359,7 @@ export default function App() {
           position: "absolute", inset: 0, zIndex: 20,
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
           padding: mobile ? "60px 28px 40px" : "60px 40px",
-          animation: "overlayIn 0.5s ease",
+          animation: "overlayIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
           overflowY: "auto",
         }}>
           {/* Close button */}
@@ -422,7 +441,7 @@ export default function App() {
           position: "absolute", inset: 0, zIndex: 20,
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
           padding: mobile ? "60px 28px 40px" : "60px 40px",
-          animation: "overlayIn 0.4s ease",
+          animation: "overlayIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
         }}>
           <button onClick={() => setJournalOpen(false)} style={{
             position: "absolute", top: mobile ? 20 : 30, left: mobile ? 20 : 30,
@@ -462,7 +481,7 @@ export default function App() {
           position: "absolute", inset: 0, zIndex: 20,
           display: "flex", flexDirection: "column", alignItems: "center",
           padding: mobile ? "60px 24px 40px" : "60px 40px",
-          animation: "overlayIn 0.4s ease", overflowY: "auto",
+          animation: "overlayIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)", overflowY: "auto",
         }}>
           <button onClick={() => setShowPastEntries(false)} style={{
             position: "absolute", top: mobile ? 20 : 30, left: mobile ? 20 : 30,
@@ -495,8 +514,8 @@ export default function App() {
       {/* ─── CSS ─── */}
       <style>{`
         @keyframes overlayIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
+          from { opacity: 0; transform: scale(0.92) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes planetPulse {
           0%, 100% { transform: scale(1); box-shadow: 0 0 60px currentColor; }
