@@ -310,7 +310,7 @@ export default function App() {
     if (!user) return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     const resize = () => {
       canvas.width = window.innerWidth * dpr;
@@ -349,8 +349,8 @@ export default function App() {
     const handleTouchMove = (e) => {
       if (e.touches.length > 0) {
         mouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        cursorTrail.push({ x: e.touches[0].clientX, y: e.touches[0].clientY, life: 1, size: Math.random() * 8 + 4 });
-        if (cursorTrail.length > 30) cursorTrail.shift();
+        cursorTarget.x = e.touches[0].clientX;
+        cursorTarget.y = e.touches[0].clientY;
       }
     };
     window.addEventListener("mousemove", handleMouse);
@@ -394,16 +394,16 @@ export default function App() {
       timeRef.current += dt;
 
       // Smooth cursor interpolation (lerp)
-      cursorSmooth.x += (cursorTarget.x - cursorSmooth.x) * 0.18;
-      cursorSmooth.y += (cursorTarget.y - cursorSmooth.y) * 0.18;
+      cursorSmooth.x += (cursorTarget.x - cursorSmooth.x) * 0.35;
+      cursorSmooth.y += (cursorTarget.y - cursorSmooth.y) * 0.35;
       const cursorEl = document.getElementById("shunya-cursor");
       if (cursorEl) { cursorEl.style.left = cursorSmooth.x + "px"; cursorEl.style.top = cursorSmooth.y + "px"; }
 
       // Spawn trail particles in render loop for consistent spacing
-      if (Math.abs(cursorTarget.x - (cursorTrail.length > 0 ? cursorTrail[cursorTrail.length - 1].x : 0)) > 3 ||
-          Math.abs(cursorTarget.y - (cursorTrail.length > 0 ? cursorTrail[cursorTrail.length - 1].y : 0)) > 3) {
-        cursorTrail.push({ x: cursorSmooth.x, y: cursorSmooth.y, life: 1, size: Math.random() * 6 + 3 });
-        if (cursorTrail.length > 25) cursorTrail.shift();
+      if (Math.abs(cursorTarget.x - (cursorTrail.length > 0 ? cursorTrail[cursorTrail.length - 1].x : 0)) > 5 ||
+          Math.abs(cursorTarget.y - (cursorTrail.length > 0 ? cursorTrail[cursorTrail.length - 1].y : 0)) > 5) {
+        cursorTrail.push({ x: cursorSmooth.x, y: cursorSmooth.y, life: 1, size: Math.random() * 5 + 3 });
+        if (cursorTrail.length > 15) cursorTrail.shift();
       }
 
       ctx.save();
@@ -420,18 +420,14 @@ export default function App() {
         ctx.fillStyle = nb;
         ctx.fillRect(nx - radius, ny - radius, radius * 2, radius * 2);
       };
-      // Purple nebula clusters — boosted visibility
+      // Purple nebula clusters — key clouds only for performance
       drawNebula(w * 0.12, h * 0.18, w * 0.35, 88, 28, 135, 0.14);
       drawNebula(w * 0.85, h * 0.72, w * 0.3, 67, 20, 110, 0.12);
-      drawNebula(w * 0.5, h * 0.88, w * 0.4, 100, 40, 150, 0.1);
+      drawNebula(w * 0.5, h * 0.88, w * 0.35, 100, 40, 150, 0.1);
       // Blue-purple wisps
       drawNebula(w * 0.72, h * 0.12, w * 0.25, 40, 50, 120, 0.12);
-      drawNebula(w * 0.22, h * 0.62, w * 0.22, 60, 30, 100, 0.1);
       // Warm accent near sun
       drawNebula(cx, cy, w * 0.18, 120, 60, 20, 0.08);
-      // Additional deep space clouds
-      drawNebula(w * 0.4, h * 0.35, w * 0.2, 50, 20, 80, 0.08);
-      drawNebula(w * 0.9, h * 0.35, w * 0.15, 30, 40, 90, 0.09);
 
       bgStars.forEach((s) => { s.twinkle += s.speed; const a = 0.3 + Math.sin(s.twinkle) * 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); });
 
@@ -684,7 +680,7 @@ export default function App() {
       // ─── Black hole gravitational trail ───
       for (let i = cursorTrail.length - 1; i >= 0; i--) {
         const p = cursorTrail[i];
-        p.life -= 0.022;
+        p.life -= 0.035;
         if (p.life <= 0) { cursorTrail.splice(i, 1); continue; }
         const radius = p.size * (2 - p.life * 0.8);
         // Dark core with purple-orange accretion edge
@@ -776,7 +772,7 @@ export default function App() {
       {/* ═══════════════════════════════════════════════════════ */}
       {/* PLANET VIEW — Zoomed planet with orbiting moons        */}
       {/* ═══════════════════════════════════════════════════════ */}
-      {selectedPlanet && !journalOpen && !showAgePrompt && (
+      {selectedPlanet && !journalOpen && !showAgePrompt && !showDharmaTodos && (
         <div style={{
           position: "absolute", inset: 0, zIndex: 20,
           display: "flex", flexDirection: mobile ? "column" : "row",
