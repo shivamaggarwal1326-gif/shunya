@@ -116,7 +116,7 @@ export default function App() {
   const [showPastEntries, setShowPastEntries] = useState(false);
   const [selectedMoonEntry, setSelectedMoonEntry] = useState(null);
   const [mobile, setMobile] = useState(window.innerWidth < 768);
-  const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 500 : Math.min(w, window.innerHeight) / 900; };
+  const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 900 : Math.min(w, window.innerHeight) / 900; };
   const scaleRef = useRef(getScale());
   const animFrameRef = useRef(null);
   const shootingStarsRef = useRef([]);
@@ -178,7 +178,7 @@ export default function App() {
       const sunCx = w < 768 ? w / 2 : w * 0.55;
       const sunCy = h / 2;
       const scale = scaleRef.current;
-      const eR = w < 768 ? 0.65 : 0.4;
+      const eR = w < 768 ? 0.85 : 0.4;
       const t = timeRef.current;
       const pAngle = t * selectedPlanet.speed;
       const pOrbit = selectedPlanet.baseOrbit * scale;
@@ -233,7 +233,7 @@ export default function App() {
     if (next >= 10) {
       const w = window.innerWidth; const h = window.innerHeight;
       const sunCx = w < 768 ? w / 2 : w * 0.55; const sunCy = h / 2;
-      const scale = scaleRef.current; const eR = w < 768 ? 0.65 : 0.4;
+      const scale = scaleRef.current; const eR = w < 768 ? 0.85 : 0.4;
       const mokshaPlanet = PLANETS.find(p => p.id === "moksha");
       const t = timeRef.current;
       const pAngle = t * mokshaPlanet.speed; const pOrbit = mokshaPlanet.baseOrbit * scale;
@@ -326,7 +326,7 @@ export default function App() {
     const handleInteraction = (mx, my) => {
       const w = window.innerWidth; const h = window.innerHeight;
       const cx = w < 768 ? w / 2 : w * 0.55; const cy = h / 2; const scale = scaleRef.current;
-      const eR = w < 768 ? 0.65 : 0.4;
+      const eR = w < 768 ? 0.85 : 0.4;
       shootingStarsRef.current.forEach((star) => { const d = Math.hypot(star.x - mx, star.y - my); if (d < 50) { star.caught = true; collectStar(); } });
       const t = timeRef.current;
       PLANETS.forEach((planet) => {
@@ -357,7 +357,7 @@ export default function App() {
       // Offset sun to the right on desktop so outer planets orbit through the left edge
       const cx = w < 768 ? w / 2 : w * 0.55;
       const cy = h / 2;
-      const scale = scaleRef.current; const eR = w < 768 ? 0.65 : 0.4;
+      const scale = scaleRef.current; const eR = w < 768 ? 0.85 : 0.4;
       timeRef.current += dt;
 
       // Smooth cursor interpolation (lerp)
@@ -378,7 +378,7 @@ export default function App() {
       // ─── Deep space background with nebula ───
       ctx.fillStyle = "#05020e"; ctx.fillRect(0, 0, w, h);
 
-      // Nebula clouds (static positioned, subtle)
+      // Nebula clouds (static positioned, visible)
       const drawNebula = (nx, ny, radius, r, g, b, alpha) => {
         const nb = ctx.createRadialGradient(nx, ny, 0, nx, ny, radius);
         nb.addColorStop(0, `rgba(${r},${g},${b},${alpha})`);
@@ -387,15 +387,18 @@ export default function App() {
         ctx.fillStyle = nb;
         ctx.fillRect(nx - radius, ny - radius, radius * 2, radius * 2);
       };
-      // Purple nebula clusters
-      drawNebula(w * 0.15, h * 0.2, w * 0.35, 88, 28, 135, 0.06);
-      drawNebula(w * 0.82, h * 0.7, w * 0.3, 67, 20, 110, 0.05);
-      drawNebula(w * 0.5, h * 0.85, w * 0.4, 100, 40, 150, 0.04);
+      // Purple nebula clusters — boosted visibility
+      drawNebula(w * 0.12, h * 0.18, w * 0.35, 88, 28, 135, 0.14);
+      drawNebula(w * 0.85, h * 0.72, w * 0.3, 67, 20, 110, 0.12);
+      drawNebula(w * 0.5, h * 0.88, w * 0.4, 100, 40, 150, 0.1);
       // Blue-purple wisps
-      drawNebula(w * 0.7, h * 0.15, w * 0.25, 40, 50, 120, 0.05);
-      drawNebula(w * 0.25, h * 0.65, w * 0.2, 60, 30, 100, 0.04);
+      drawNebula(w * 0.72, h * 0.12, w * 0.25, 40, 50, 120, 0.12);
+      drawNebula(w * 0.22, h * 0.62, w * 0.22, 60, 30, 100, 0.1);
       // Warm accent near sun
-      drawNebula(cx, cy, w * 0.15, 120, 60, 20, 0.03);
+      drawNebula(cx, cy, w * 0.18, 120, 60, 20, 0.08);
+      // Additional deep space clouds
+      drawNebula(w * 0.4, h * 0.35, w * 0.2, 50, 20, 80, 0.08);
+      drawNebula(w * 0.9, h * 0.35, w * 0.15, 30, 40, 90, 0.09);
 
       bgStars.forEach((s) => { s.twinkle += s.speed; const a = 0.3 + Math.sin(s.twinkle) * 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); });
 
@@ -523,7 +526,7 @@ export default function App() {
         return true;
       });
       PLANETS.forEach((p) => {
-        const angle = t * p.speed; const orbit = p.baseOrbit * scale; const size = Math.max(p.baseSize * scale, w < 768 ? 12 : 10);
+        const angle = t * p.speed; const orbit = p.baseOrbit * scale; const size = Math.max(p.baseSize * scale, w < 768 ? 14 : 10);
         const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * eR;
         const pulseSize = size * (1 + Math.sin(t * 0.001 + p.baseOrbit) * 0.06);
         const glowRadius = pulseSize * (3.5 + Math.sin(t * 0.0015 + p.baseOrbit) * 1);
