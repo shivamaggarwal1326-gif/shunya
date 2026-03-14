@@ -219,11 +219,31 @@ export default function App() {
 
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = "#000005"; ctx.fillRect(0, 0, w, h);
+      // ─── Deep space background with nebula ───
+      ctx.fillStyle = "#05020e"; ctx.fillRect(0, 0, w, h);
+
+      // Nebula clouds (static positioned, subtle)
+      const drawNebula = (nx, ny, radius, r, g, b, alpha) => {
+        const nb = ctx.createRadialGradient(nx, ny, 0, nx, ny, radius);
+        nb.addColorStop(0, `rgba(${r},${g},${b},${alpha})`);
+        nb.addColorStop(0.4, `rgba(${r},${g},${b},${alpha * 0.4})`);
+        nb.addColorStop(1, "transparent");
+        ctx.fillStyle = nb;
+        ctx.fillRect(nx - radius, ny - radius, radius * 2, radius * 2);
+      };
+      // Purple nebula clusters
+      drawNebula(w * 0.15, h * 0.2, w * 0.35, 88, 28, 135, 0.06);
+      drawNebula(w * 0.82, h * 0.7, w * 0.3, 67, 20, 110, 0.05);
+      drawNebula(w * 0.5, h * 0.85, w * 0.4, 100, 40, 150, 0.04);
+      // Blue-purple wisps
+      drawNebula(w * 0.7, h * 0.15, w * 0.25, 40, 50, 120, 0.05);
+      drawNebula(w * 0.25, h * 0.65, w * 0.2, 60, 30, 100, 0.04);
+      // Warm accent near sun
+      drawNebula(cx, cy, w * 0.15, 120, 60, 20, 0.03);
 
       bgStars.forEach((s) => { s.twinkle += s.speed; const a = 0.3 + Math.sin(s.twinkle) * 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); });
 
-      PLANETS.forEach((p) => { const o = p.baseOrbit * scale; ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2); ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.lineWidth = 1; ctx.stroke(); });
+      PLANETS.forEach((p) => { const o = p.baseOrbit * scale; ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2); ctx.strokeStyle = "rgba(255,255,255,0.04)"; ctx.lineWidth = 1; ctx.stroke(); });
 
       const csz = sunSize * scale;
       const sg = ctx.createRadialGradient(cx, cy, 0, cx, cy, csz * 3);
@@ -232,7 +252,7 @@ export default function App() {
       const sg2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, csz);
       sg2.addColorStop(0, "#fff8e7"); sg2.addColorStop(0.5, "#f5a623"); sg2.addColorStop(1, "#e8912d");
       ctx.beginPath(); ctx.arc(cx, cy, csz, 0, Math.PI * 2); ctx.fillStyle = sg2; ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.font = `${Math.max(9, 11 * scale)}px Georgia`; ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(245,166,35,0.8)"; ctx.font = `${Math.max(9, 11 * scale)}px Georgia`; ctx.textAlign = "center";
       ctx.fillText("SHUNYA", cx, cy + csz + 16);
 
       const t = timeRef.current;
@@ -240,17 +260,31 @@ export default function App() {
         const angle = t * p.speed; const orbit = p.baseOrbit * scale; const size = Math.max(p.baseSize * scale, 8);
         const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * eR;
         const pulseSize = size * (1 + Math.sin(t * 0.001 + p.baseOrbit) * 0.08);
-        const glowRadius = pulseSize * (3 + Math.sin(t * 0.0015 + p.baseOrbit) * 0.8);
+        const glowRadius = pulseSize * (3.5 + Math.sin(t * 0.0015 + p.baseOrbit) * 1);
+
+        // Outer glow
         const gl = ctx.createRadialGradient(px, py, 0, px, py, glowRadius);
-        gl.addColorStop(0, p.glow); gl.addColorStop(1, "transparent"); ctx.fillStyle = gl;
-        ctx.fillRect(px - glowRadius, py - glowRadius, glowRadius * 2, glowRadius * 2);
-        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.fill();
-        // Planet inner highlight
-        const hl = ctx.createRadialGradient(px - size * 0.3, py - size * 0.3, 0, px, py, size);
-        hl.addColorStop(0, "rgba(255,255,255,0.25)"); hl.addColorStop(1, "transparent");
+        gl.addColorStop(0, p.glow); gl.addColorStop(0.5, p.glow.replace("0.4", "0.1")); gl.addColorStop(1, "transparent");
+        ctx.fillStyle = gl; ctx.fillRect(px - glowRadius, py - glowRadius, glowRadius * 2, glowRadius * 2);
+
+        // Shadow underneath (depth effect)
+        ctx.beginPath(); ctx.ellipse(px + 2, py + size + 4, size * 0.8, size * 0.2, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fill();
+
+        // Planet body with gradient
+        const pg = ctx.createRadialGradient(px - size * 0.3, py - size * 0.3, size * 0.1, px, py, pulseSize);
+        pg.addColorStop(0, "#ffffff"); pg.addColorStop(0.15, p.color); pg.addColorStop(1, p.color + "88");
+        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = pg; ctx.fill();
+
+        // Planet inner highlight (specular)
+        const hl = ctx.createRadialGradient(px - size * 0.35, py - size * 0.35, 0, px, py, size);
+        hl.addColorStop(0, "rgba(255,255,255,0.35)"); hl.addColorStop(0.5, "rgba(255,255,255,0.05)"); hl.addColorStop(1, "transparent");
         ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = hl; ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.font = `${Math.max(7, 9 * scale)}px Georgia`; ctx.textAlign = "center";
-        ctx.fillText(p.name, px, py + size + 14);
+
+        // Planet name — colored to match planet
+        ctx.fillStyle = p.color; ctx.font = `${Math.max(7, 9 * scale)}px Georgia`; ctx.textAlign = "center";
+        ctx.globalAlpha = 0.75; ctx.fillText(p.name, px, py + size + 14); ctx.globalAlpha = 1.0;
+
         const mc = moonCounts[p.id] || 0;
         for (let i = 0; i < mc; i++) {
           const ma = t * 0.002 + (i * Math.PI * 2) / Math.max(mc, 1); const md = size + 8 + i * 2.5;
@@ -275,17 +309,18 @@ export default function App() {
         return true;
       });
 
-      // ─── Cursor trail (purple nebula) ───
+      // ─── Cursor trail (soft purple nebula wake) ───
       for (let i = cursorTrail.length - 1; i >= 0; i--) {
         const p = cursorTrail[i];
-        p.life -= 0.03;
+        p.life -= 0.025;
         if (p.life <= 0) { cursorTrail.splice(i, 1); continue; }
-        const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * p.life);
-        grd.addColorStop(0, `rgba(147, 51, 234, ${p.life * 0.5})`);
-        grd.addColorStop(0.5, `rgba(124, 58, 237, ${p.life * 0.25})`);
+        const radius = p.size * (1.5 - p.life * 0.5);
+        const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius);
+        grd.addColorStop(0, `rgba(147, 51, 234, ${p.life * 0.3})`);
+        grd.addColorStop(0.6, `rgba(124, 58, 237, ${p.life * 0.12})`);
         grd.addColorStop(1, "transparent");
         ctx.fillStyle = grd;
-        ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
+        ctx.fillRect(p.x - radius, p.y - radius, radius * 2, radius * 2);
       }
 
       ctx.restore();
@@ -313,9 +348,10 @@ export default function App() {
       {!mobile && (
         <div id="shunya-cursor" style={{
           position: "fixed", pointerEvents: "none", zIndex: 9999,
-          width: 24, height: 24, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(168,85,247,0.9) 0%, rgba(124,58,237,0.4) 50%, transparent 70%)",
-          boxShadow: "0 0 14px rgba(147,51,234,0.6), 0 0 35px rgba(124,58,237,0.3)",
+          width: 36, height: 36, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(192,132,252,0.8) 0%, rgba(147,51,234,0.35) 40%, rgba(124,58,237,0.1) 65%, transparent 80%)",
+          boxShadow: "0 0 20px rgba(147,51,234,0.5), 0 0 50px rgba(124,58,237,0.2)",
+          border: "1px solid rgba(192,132,252,0.3)",
           transform: "translate(-50%, -50%)",
           left: 0, top: 0,
           willChange: "transform, left, top",
