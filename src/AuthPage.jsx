@@ -163,56 +163,56 @@ export default function AuthPage({ onAuth, onSignupStart }) {
       <div style={{ textAlign: "center", position: "relative", zIndex: 2, width: mobile ? "88vw" : 380, animation: "authFadeIn 1s ease" }}>
 
         {/* Logo */}
-        <h1 style={{ color: "#f5a623", fontSize: mobile ? 36 : 48, letterSpacing: mobile ? 10 : 18, marginBottom: 10, fontWeight: 300, textShadow: "0 0 40px rgba(245,166,35,0.25)" }}>SHUNYA</h1>
-        <p style={{ color: "rgba(255,255,255,0.3)", fontSize: mobile ? 11 : 13, letterSpacing: mobile ? 3 : 5, marginBottom: 8, textTransform: "uppercase" }}>For your 3 AM thoughts</p>
-        <div style={{ width: 50, height: 1, margin: "0 auto", marginBottom: mobile ? 32 : 44, background: "linear-gradient(90deg, transparent, rgba(245,166,35,0.4), transparent)" }} />
+        <h1 style={{ color: "#f5a623", fontSize: mobile ? 36 : 48, letterSpacing: mobile ? 10 : 18, marginBottom: 10, fontWeight: 300, textShadow: "0 0 50px rgba(245,166,35,0.35), 0 0 100px rgba(245,166,35,0.1)" }}>SHUNYA</h1>
+        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: mobile ? 11 : 13, letterSpacing: mobile ? 3 : 5, marginBottom: 8, textTransform: "uppercase" }}>For your 3 AM thoughts</p>
+        <div style={{ width: 50, height: 1, margin: "0 auto", marginBottom: mobile ? 32 : 44, background: "linear-gradient(90deg, transparent, rgba(245,166,35,0.5), transparent)" }} />
 
-        {/* Mode toggle — clear labels */}
+        {/* Mode toggle */}
         <div style={{ display: "flex", justifyContent: "center", gap: mobile ? 28 : 40, marginBottom: mobile ? 32 : 40 }}>
           <button onClick={() => { setMode("login"); setError(""); }} style={{
             background: "none", border: "none", cursor: "pointer", fontFamily: "Georgia, serif",
-            color: mode === "login" ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)",
+            color: mode === "login" ? "#ffffff" : "rgba(255,255,255,0.35)",
             fontSize: mobile ? 13 : 14, letterSpacing: 2, fontWeight: 400,
-            borderBottom: mode === "login" ? "1px solid rgba(245,166,35,0.5)" : "1px solid transparent",
+            borderBottom: mode === "login" ? "1px solid #f5a623" : "1px solid transparent",
             paddingBottom: 8, transition: "all 0.3s",
           }}>LOG IN</button>
           <button onClick={() => { setMode("signup"); setError(""); }} style={{
             background: "none", border: "none", cursor: "pointer", fontFamily: "Georgia, serif",
-            color: mode === "signup" ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)",
+            color: mode === "signup" ? "#ffffff" : "rgba(255,255,255,0.35)",
             fontSize: mobile ? 13 : 14, letterSpacing: 2, fontWeight: 400,
-            borderBottom: mode === "signup" ? "1px solid rgba(245,166,35,0.5)" : "1px solid transparent",
+            borderBottom: mode === "signup" ? "1px solid #f5a623" : "1px solid transparent",
             paddingBottom: 8, transition: "all 0.3s",
           }}>CREATE ACCOUNT</button>
         </div>
 
         {/* Username */}
-        <input type="text" placeholder={mode === "signup" ? "Pick a username (this is your login)" : "Username"} value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} autoComplete="username" style={{ width: "100%", padding: "16px 0", marginBottom: 8, background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.9)", fontSize: mobile ? 15 : 17, outline: "none", boxSizing: "border-box", fontFamily: "Georgia, serif", letterSpacing: 1, textAlign: "center" }} />
+        <input type="text" placeholder={mode === "signup" ? "Pick a username (this is your login)" : "Username"} value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} autoComplete="username" style={{ width: "100%", padding: "16px 0", marginBottom: 8, background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.25)", color: "#fff", fontSize: mobile ? 15 : 17, outline: "none", boxSizing: "border-box", fontFamily: "Georgia, serif", letterSpacing: 1, textAlign: "center" }} />
 
         {mode === "signup" && username.length > 0 && (
-          <p style={{ color: validateUsername(username) ? "rgba(255,107,107,0.5)" : "rgba(78,205,196,0.45)", fontSize: 10, marginTop: 6, marginBottom: 2 }}>{validateUsername(username) || "✓ Looks good"}</p>
+          <p style={{ color: validateUsername(username) ? "rgba(255,107,107,0.7)" : "rgba(78,205,196,0.6)", fontSize: 11, marginTop: 6, marginBottom: 2 }}>{validateUsername(username) || "✓ Looks good"}</p>
         )}
 
         {/* Password */}
-        <input type="password" placeholder={mode === "signup" ? "Create a password (6+ characters)" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "signup" ? "new-password" : "current-password"} onKeyDown={(e) => { if (e.key === "Enter") { mode === "signup" ? handleSignup() : handleLogin(); } }} style={{ width: "100%", padding: "16px 0", marginTop: 18, marginBottom: 8, background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.9)", fontSize: mobile ? 15 : 17, outline: "none", boxSizing: "border-box", fontFamily: "Georgia, serif", letterSpacing: 1, textAlign: "center" }} />
+        <input type="password" placeholder={mode === "signup" ? "Create a password (6+ characters)" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "signup" ? "new-password" : "current-password"} onKeyDown={(e) => { if (e.key === "Enter") { mode === "signup" ? handleSignup() : handleLogin(); } }} style={{ width: "100%", padding: "16px 0", marginTop: 18, marginBottom: 8, background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.25)", color: "#fff", fontSize: mobile ? 15 : 17, outline: "none", boxSizing: "border-box", fontFamily: "Georgia, serif", letterSpacing: 1, textAlign: "center" }} />
 
-        {error && <p style={{ color: "rgba(255,107,107,0.7)", fontSize: 11, marginTop: 16, lineHeight: 1.5 }}>{error}</p>}
+        {error && <p style={{ color: "rgba(255,107,107,0.85)", fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>{error}</p>}
 
         {/* Submit */}
-        <button onClick={mode === "signup" ? handleSignup : handleLogin} disabled={loading} style={{ width: mobile ? "100%" : "80%", padding: mobile ? "16px" : "18px", background: "transparent", border: "1px solid rgba(245,166,35,0.4)", borderRadius: 50, color: "#f5a623", fontSize: mobile ? 13 : 14, fontWeight: 400, cursor: "pointer", letterSpacing: 3, marginTop: mobile ? 30 : 40, fontFamily: "Georgia, serif", transition: "all 0.3s", opacity: loading ? 0.5 : 1, textShadow: "0 0 12px rgba(245,166,35,0.15)" }}>{loading ? "..." : mode === "signup" ? "✦ RECEIVE YOUR COSMIC NAME" : "✦ ENTER SHUNYA"}</button>
+        <button onClick={mode === "signup" ? handleSignup : handleLogin} disabled={loading} style={{ width: mobile ? "100%" : "80%", padding: mobile ? "16px" : "18px", background: "transparent", border: "1.5px solid rgba(245,166,35,0.6)", borderRadius: 50, color: "#f5a623", fontSize: mobile ? 14 : 15, fontWeight: 400, cursor: "pointer", letterSpacing: 3, marginTop: mobile ? 30 : 40, fontFamily: "Georgia, serif", transition: "all 0.3s", opacity: loading ? 0.5 : 1, textShadow: "0 0 15px rgba(245,166,35,0.25)" }}>{loading ? "..." : mode === "signup" ? "✦ RECEIVE YOUR COSMIC NAME" : "✦ ENTER SHUNYA"}</button>
 
         {/* Hints */}
         {mode === "signup" && (
           <div style={{ marginTop: mobile ? 28 : 36 }}>
-            <p style={{ color: "rgba(255,255,255,0.2)", fontSize: mobile ? 10 : 11, lineHeight: 1.8, maxWidth: 340, margin: "0 auto" }}>
+            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: mobile ? 10 : 11, lineHeight: 1.8, maxWidth: 340, margin: "0 auto" }}>
               No email needed. No data collected. Just pick a username you will remember — your initials, a nickname, anything.
             </p>
-            <p style={{ color: "rgba(255,107,107,0.3)", fontSize: mobile ? 9 : 10, marginTop: 14, lineHeight: 1.5 }}>
+            <p style={{ color: "rgba(255,107,107,0.45)", fontSize: mobile ? 9 : 10, marginTop: 14, lineHeight: 1.5 }}>
               No password recovery exists. Write it somewhere safe.
             </p>
           </div>
         )}
         {mode === "login" && (
-          <p style={{ color: "rgba(255,255,255,0.15)", fontSize: mobile ? 10 : 11, marginTop: mobile ? 28 : 36, lineHeight: 1.6 }}>
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: mobile ? 10 : 11, marginTop: mobile ? 28 : 36, lineHeight: 1.6 }}>
             Use the username and password you created when you signed up.
           </p>
         )}
@@ -221,8 +221,8 @@ export default function AuthPage({ onAuth, onSignupStart }) {
       <style>{`
         @keyframes authFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes authPulse { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
-        input::placeholder { color: rgba(255,255,255,0.18); }
-        input:focus { border-bottom-color: rgba(245,166,35,0.35) !important; }
+        input::placeholder { color: rgba(255,255,255,0.3); }
+        input:focus { border-bottom-color: #f5a623 !important; }
       `}</style>
     </div>
   );
