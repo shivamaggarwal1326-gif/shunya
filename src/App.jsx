@@ -110,13 +110,25 @@ export default function App() {
 
   const collectStar = async () => { const n = starsCollected + 1; setStarsCollected(n); await supabase.from("profiles").update({ stars_collected: n }).eq("id", user.id); };
 
-  // ─── Canvas Animation (unchanged) ───
+  // ─── Canvas Animation ───
   useEffect(() => {
     if (!user) return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; scaleRef.current = getScale(); };
+    const dpr = window.devicePixelRatio || 1;
+
+    const resize = () => {
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+      ctx.scale(dpr, dpr);
+      scaleRef.current = getScale();
+    };
     resize(); window.addEventListener("resize", resize);
+
+    // Cursor trail particles
+    const cursorTrail = [];
 
     const bgStars = Array.from({ length: 200 }, () => ({
       x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
@@ -129,14 +141,25 @@ export default function App() {
     };
     const shootingInterval = setInterval(spawnShootingStar, 3000);
 
-    const handleMouse = (e) => { mouseRef.current = { x: e.clientX, y: e.clientY }; };
-    const handleTouchMove = (e) => { if (e.touches.length > 0) mouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+    const handleMouse = (e) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+      cursorTrail.push({ x: e.clientX, y: e.clientY, life: 1, size: Math.random() * 8 + 4 });
+      if (cursorTrail.length > 30) cursorTrail.shift();
+    };
+    const handleTouchMove = (e) => {
+      if (e.touches.length > 0) {
+        mouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        cursorTrail.push({ x: e.touches[0].clientX, y: e.touches[0].clientY, life: 1, size: Math.random() * 8 + 4 });
+        if (cursorTrail.length > 30) cursorTrail.shift();
+      }
+    };
     window.addEventListener("mousemove", handleMouse);
     window.addEventListener("touchmove", handleTouchMove, { passive: true });
 
     const handleInteraction = (mx, my) => {
-      const cx = canvas.width / 2; const cy = canvas.height / 2; const scale = scaleRef.current;
-      const eR = canvas.width < 768 ? 0.65 : 0.4;
+      const w = window.innerWidth; const h = window.innerHeight;
+      const cx = w / 2; const cy = h / 2; const scale = scaleRef.current;
+      const eR = w < 768 ? 0.65 : 0.4;
       shootingStarsRef.current.forEach((star) => { const d = Math.hypot(star.x - mx, star.y - my); if (d < 40 && star.slowing) { star.caught = true; collectStar(); } });
       const t = timeRef.current;
       PLANETS.forEach((planet) => {
@@ -144,7 +167,7 @@ export default function App() {
         const size = Math.max(planet.baseSize * scale, 12);
         const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * eR;
         const dist = Math.hypot(px - mx, py - my);
-        const hitR = window.innerWidth < 768 ? Math.max(size + 22, 32) : size + 15;
+        const hitR = w < 768 ? Math.max(size + 22, 32) : size + 15;
         if (dist < hitR) { setSelectedPlanet(planet); setJournalOpen(false); setShowPastEntries(false); }
       });
     };
@@ -155,9 +178,11 @@ export default function App() {
     canvas.addEventListener("touchstart", handleTap, { passive: false });
 
     const render = () => {
-      const w = canvas.width; const h = canvas.height; const cx = w / 2; const cy = h / 2;
+      const w = window.innerWidth; const h = window.innerHeight; const cx = w / 2; const cy = h / 2;
       const scale = scaleRef.current; const eR = w < 768 ? 0.65 : 0.4;
       timeRef.current += 16;
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = "#000005"; ctx.fillRect(0, 0, w, h);
 
       bgStars.forEach((s) => { s.twinkle += s.speed; const a = 0.3 + Math.sin(s.twinkle) * 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); });
@@ -178,10 +203,16 @@ export default function App() {
       PLANETS.forEach((p) => {
         const angle = t * p.speed; const orbit = p.baseOrbit * scale; const size = Math.max(p.baseSize * scale, 8);
         const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * eR;
-        const gl = ctx.createRadialGradient(px, py, 0, px, py, size * 3);
+        const pulseSize = size * (1 + Math.sin(t * 0.001 + p.baseOrbit) * 0.08);
+        const glowRadius = pulseSize * (3 + Math.sin(t * 0.0015 + p.baseOrbit) * 0.8);
+        const gl = ctx.createRadialGradient(px, py, 0, px, py, glowRadius);
         gl.addColorStop(0, p.glow); gl.addColorStop(1, "transparent"); ctx.fillStyle = gl;
-        ctx.fillRect(px - size * 3, py - size * 3, size * 6, size * 6);
-        ctx.beginPath(); ctx.arc(px, py, size, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.fill();
+        ctx.fillRect(px - glowRadius, py - glowRadius, glowRadius * 2, glowRadius * 2);
+        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.fill();
+        // Planet inner highlight
+        const hl = ctx.createRadialGradient(px - size * 0.3, py - size * 0.3, 0, px, py, size);
+        hl.addColorStop(0, "rgba(255,255,255,0.25)"); hl.addColorStop(1, "transparent");
+        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = hl; ctx.fill();
         ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.font = `${Math.max(7, 9 * scale)}px Georgia`; ctx.textAlign = "center";
         ctx.fillText(p.name, px, py + size + 14);
         const mc = moonCounts[p.id] || 0;
@@ -208,6 +239,20 @@ export default function App() {
         return true;
       });
 
+      // ─── Cursor trail (purple nebula) ───
+      for (let i = cursorTrail.length - 1; i >= 0; i--) {
+        const p = cursorTrail[i];
+        p.life -= 0.03;
+        if (p.life <= 0) { cursorTrail.splice(i, 1); continue; }
+        const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * p.life);
+        grd.addColorStop(0, `rgba(147, 51, 234, ${p.life * 0.5})`);
+        grd.addColorStop(0.5, `rgba(124, 58, 237, ${p.life * 0.25})`);
+        grd.addColorStop(1, "transparent");
+        ctx.fillStyle = grd;
+        ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
+      }
+
+      ctx.restore();
       animFrameRef.current = requestAnimationFrame(render);
     };
     render();
