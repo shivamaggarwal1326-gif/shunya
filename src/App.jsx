@@ -115,7 +115,7 @@ export default function App() {
     if (next >= 10) {
       // Spawn merge animation — moons fly toward the sun
       const w = window.innerWidth; const h = window.innerHeight;
-      const sunCx = w < 768 ? w / 2 : w * 0.55;
+      const sunCx = w < 768 ? w / 2 : w * 0.62;
       const sunCy = h / 2;
       const scale = scaleRef.current;
       const eR = w < 768 ? 0.65 : 0.4;
@@ -219,7 +219,7 @@ export default function App() {
 
     const handleInteraction = (mx, my) => {
       const w = window.innerWidth; const h = window.innerHeight;
-      const cx = w < 768 ? w / 2 : w * 0.55; const cy = h / 2; const scale = scaleRef.current;
+      const cx = w < 768 ? w / 2 : w * 0.62; const cy = h / 2; const scale = scaleRef.current;
       const eR = w < 768 ? 0.65 : 0.4;
       shootingStarsRef.current.forEach((star) => { const d = Math.hypot(star.x - mx, star.y - my); if (d < 50) { star.caught = true; collectStar(); } });
       const t = timeRef.current;
@@ -243,7 +243,7 @@ export default function App() {
       lastFrameTime = now;
       const w = window.innerWidth; const h = window.innerHeight;
       // Offset sun to the right on desktop so outer planets orbit through the left edge
-      const cx = w < 768 ? w / 2 : w * 0.55;
+      const cx = w < 768 ? w / 2 : w * 0.62;
       const cy = h / 2;
       const scale = scaleRef.current; const eR = w < 768 ? 0.65 : 0.4;
       timeRef.current += dt;
