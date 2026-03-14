@@ -66,6 +66,21 @@ export default function App() {
     window.addEventListener("resize", h); return () => window.removeEventListener("resize", h);
   }, []);
 
+  // Disable pinch zoom
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (meta) meta.setAttribute("content", "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no");
+    else {
+      const m = document.createElement("meta"); m.name = "viewport";
+      m.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
+      document.head.appendChild(m);
+    }
+    // Prevent zoom gestures
+    const preventZoom = (e) => { if (e.touches && e.touches.length > 1) e.preventDefault(); };
+    document.addEventListener("touchmove", preventZoom, { passive: false });
+    return () => document.removeEventListener("touchmove", preventZoom);
+  }, []);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) loadUserData(session.user); else setCheckingAuth(false);
@@ -145,6 +160,8 @@ export default function App() {
       mouseRef.current = { x: e.clientX, y: e.clientY };
       cursorTrail.push({ x: e.clientX, y: e.clientY, life: 1, size: Math.random() * 8 + 4 });
       if (cursorTrail.length > 30) cursorTrail.shift();
+      const cursorEl = document.getElementById("shunya-cursor");
+      if (cursorEl) { cursorEl.style.left = e.clientX + "px"; cursorEl.style.top = e.clientY + "px"; }
     };
     const handleTouchMove = (e) => {
       if (e.touches.length > 0) {
@@ -272,7 +289,19 @@ export default function App() {
   const hasOverlay = selectedPlanet !== null;
 
   return (
-    <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: "#000", fontFamily: "Georgia, serif" }}>
+    <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: "#000", fontFamily: "Georgia, serif", cursor: "none" }}>
+      {/* Custom purple cursor */}
+      {!mobile && (
+        <div id="shunya-cursor" style={{
+          position: "fixed", pointerEvents: "none", zIndex: 9999,
+          width: 20, height: 20, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(168,85,247,0.9) 0%, rgba(124,58,237,0.4) 50%, transparent 70%)",
+          boxShadow: "0 0 12px rgba(147,51,234,0.6), 0 0 30px rgba(124,58,237,0.3)",
+          transform: "translate(-50%, -50%)",
+          left: 0, top: 0,
+          transition: "width 0.15s, height 0.15s, box-shadow 0.15s",
+        }} />
+      )}
       {/* Canvas — always runs, gets blurred when overlay is open */}
       <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, transition: "filter 0.5s ease", filter: hasOverlay ? "blur(8px) brightness(0.4)" : "none" }} />
 
