@@ -56,7 +56,7 @@ export default function App() {
   const [pastEntries, setPastEntries] = useState([]);
   const [showPastEntries, setShowPastEntries] = useState(false);
   const [mobile, setMobile] = useState(window.innerWidth < 768);
-  const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 580 : Math.min(w, window.innerHeight) / 1100; };
+  const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 500 : Math.min(w, window.innerHeight) / 900; };
   const scaleRef = useRef(getScale());
   const animFrameRef = useRef(null);
   const shootingStarsRef = useRef([]);
@@ -287,7 +287,13 @@ export default function App() {
 
       bgStars.forEach((s) => { s.twinkle += s.speed; const a = 0.3 + Math.sin(s.twinkle) * 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); });
 
-      PLANETS.forEach((p) => { const o = p.baseOrbit * scale; ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2); ctx.strokeStyle = "rgba(255,255,255,0.04)"; ctx.lineWidth = 1; ctx.stroke(); });
+      PLANETS.forEach((p) => {
+        const o = p.baseOrbit * scale;
+        // Orbit ring — subtle glow matching planet color
+        ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(140,130,180,0.08)";
+        ctx.lineWidth = 1; ctx.stroke();
+      });
 
       const csz = sunSize * scale;
       const t = timeRef.current;
