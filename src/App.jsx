@@ -4,7 +4,6 @@ import AuthPage from "./AuthPage";
 import FeedbackForm from "./FeedbackForm";
 import StreakTracker from "./StreakTracker";
 import { RehesyaPanel, RehesyaRelease, RehesyaAnswers, useRehesya, useRehesyaActive, useRehesyaState } from "./Rehesya";
-import { useAIPrompt } from "./PlanetPrompt";
 
 const PLANETS = [
   { id: "aatma",
@@ -716,11 +715,10 @@ export default function App() {
     r.elapsed = 0;
   };
 
-  // ─── AI-powered personalized prompt ───
-  const { prompt: aiPrompt, loading: aiPromptLoading, regenerate: regenerateAIPrompt } = useAIPrompt(
-    user, selectedPlanet, ageGroup,
-    !!selectedPlanet && selectedPlanet.id !== "moksha"
-  );
+  // ─── AI prompt (stubbed — static prompts used instead) ───
+  const aiPrompt = null;
+  const aiPromptLoading = false;
+  const regenerateAIPrompt = () => {};
 
   // Show toast notification — auto-dismisses
   const showToast = (message, type = "error") => {
