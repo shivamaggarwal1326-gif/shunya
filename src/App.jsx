@@ -1,32 +1,60 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import AuthPage from "./AuthPage";
+import FeedbackForm from "./FeedbackForm";
+import StreakTracker from "./StreakTracker";
+import { RehesyaPanel, RehesyaRelease, RehesyaAnswers, useRehesya, useRehesyaActive, useRehesyaState } from "./Rehesya";
+import { useAIPrompt } from "./PlanetPrompt";
 
 const PLANETS = [
-  { id: "aatma", name: "AATMA", meaning: "The Soul · आत्मा", color: "#e07840", glow: "rgba(224,120,64,0.4)", baseSize: 16, baseOrbit: 150, speed: 0.0005,
+  { id: "aatma",
+    whisper: "what burns underneath everything",
+    lockedHint: "a place older than your name, older than your wounds",
+    name: "AATMA", meaning: "The Soul · आत्मा", color: "#e07840", glow: "rgba(224,120,64,0.4)", baseSize: 16, baseOrbit: 150, speed: 0.0005,
     description: "Aatma is the eternal soul — the part of you that existed before your name, your wounds, and your achievements. It is not your personality. It is not your story. It is the awareness behind all of it.",
     howItLives: "When you sit in silence and feel something ancient — something that was here before your first memory — that is Aatma. Journal here when you want to speak from beyond identity." },
-  { id: "pranaa", name: "PRANAA", meaning: "The Life Force · प्राण", color: "#4ecdc4", glow: "rgba(78,205,196,0.4)", baseSize: 14, baseOrbit: 280, speed: 0.0004,
-    description: "Pranaa is the breath that moves through you — the invisible force that keeps you alive without asking permission. It is energy itself. Not the kind you drink coffee for. The kind that animates your entire being.",
-    howItLives: "When you feel alive — truly, electrically alive — that is Pranaa. When you feel drained, disconnected, heavy — Pranaa is asking for attention. Journal here about your energy, your body, your aliveness." },
-  { id: "kaal", name: "KAAL", meaning: "Time · काल", color: "#a78bfa", glow: "rgba(167,139,250,0.4)", baseSize: 18, baseOrbit: 390, speed: 0.00035,
+  { id: "seesha",
+    whisper: "the face you show nobody",
+    lockedHint: "the mirror that asks which version of you is real",
+    name: "SEESHA", meaning: "The Mirror · शीशा", color: "#7dd3fc", glow: "rgba(125,211,252,0.4)", baseSize: 14, baseOrbit: 280, speed: 0.0004,
+    description: "Seesha is the mirror — not the one on your wall but the one inside you that shows every version of yourself at once. The warrior, the child, the fraud, the light. You built so many faces. Seesha asks which one is home.",
+    howItLives: "When you don't know who is speaking — when you feel split between versions of yourself — that is Seesha calling. Journal here when you want to meet yourself honestly." },
+  { id: "kaal",
+    whisper: "the 3 am version of time",
+    lockedHint: "where the past wears you like jewellery you never chose",
+    name: "KAAL", meaning: "Time · काल", color: "#a78bfa", glow: "rgba(167,139,250,0.4)", baseSize: 18, baseOrbit: 390, speed: 0.00035,
     description: "Kaal is time — not the clock on your wall but the deeper rhythm that governs birth, death, seasons, and everything in between. Kaal does not rush. Kaal does not wait. It simply moves.",
     howItLives: "When you feel anxious about the future or trapped in the past — that is your relationship with Kaal. Journal here when time feels heavy, when you want to process what was or prepare for what is coming." },
-  { id: "dharma", name: "DHARMA", meaning: "Purpose · धर्म", color: "#f093fb", glow: "rgba(240,147,251,0.4)", baseSize: 15, baseOrbit: 490, speed: 0.0003,
+  { id: "dharma",
+    whisper: "the quiet calling only you can hear",
+    lockedHint: "a path that keeps finding you no matter how far you run",
+    name: "DHARMA", meaning: "Purpose · धर्म", color: "#f093fb", glow: "rgba(240,147,251,0.4)", baseSize: 15, baseOrbit: 490, speed: 0.0003,
     description: "Dharma is your sacred duty — the thing you were put here to do. Not your job title. Not what society expects. The deep, quiet calling that only you can hear when everything else goes silent.",
     howItLives: "When you feel lost, purposeless, or stuck in a life that does not feel like yours — Dharma is calling. Journal here when you want to explore what you are truly meant to do." },
-  { id: "moksha", name: "MOKSHA", meaning: "Liberation · मोक्ष", color: "#ffd700", glow: "rgba(255,215,0,0.4)", baseSize: 13, baseOrbit: 570, speed: 0.00025,
+  { id: "moksha",
+    whisper: "what you would say if nothing held you back",
+    lockedHint: "the version of you that answers to nobody",
+    name: "MOKSHA", meaning: "Liberation · मोक्ष", color: "#ffd700", glow: "rgba(255,215,0,0.4)", baseSize: 13, baseOrbit: 570, speed: 0.00025,
     description: "Moksha is the ultimate freedom — liberation from the cycles of suffering, attachment, and repetition. It is not an escape from life but a deeper entrance into it, free from chains.",
     howItLives: "When you want to send a message to your future self — when you want to set something free — Moksha is where you go. Messages here can be locked and revealed later." },
-  { id: "karma", name: "KARMA", meaning: "Action · कर्म", color: "#ff6b6b", glow: "rgba(255,107,107,0.4)", baseSize: 16, baseOrbit: 650, speed: 0.0002,
+  { id: "karma",
+    whisper: "every choice you made that made you",
+    lockedHint: "where every decision you ever made is waiting to be understood",
+    name: "KARMA", meaning: "Action · कर्म", color: "#ff6b6b", glow: "rgba(255,107,107,0.4)", baseSize: 16, baseOrbit: 650, speed: 0.0002,
     description: "Karma is not punishment. It is the simple truth that every action creates a ripple. What you do, what you say, what you think — it all echoes forward. Karma is the universe keeping a ledger.",
     howItLives: "When you feel guilt, pride, consequence, or the weight of choices — that is Karma speaking. Journal here to process your actions and their echoes." },
-  { id: "prema", name: "PREMA", meaning: "Love · प्रेम", color: "#e8a0bf", glow: "rgba(232,160,191,0.4)", baseSize: 17, baseOrbit: 720, speed: 0.00015,
+  { id: "prema",
+    whisper: "what breaks you open and fills you anyway",
+    lockedHint: "the force that makes you do things you cannot explain to yourself",
+    name: "PREMA", meaning: "Love · प्रेम", color: "#e8a0bf", glow: "rgba(232,160,191,0.4)", baseSize: 17, baseOrbit: 720, speed: 0.00015,
     description: "Prema is love — not the love sold in movies or reduced to Valentine's cards. It is the force that holds atoms together and makes strangers weep at sunsets. It is what you feel when words fail and the heart overflows.",
     howItLives: "When you ache for someone. When you are grateful for someone. When love has hurt you or healed you or both at once — that is Prema. Journal here about the people who have shaped your heart." },
-  { id: "maya", name: "MAYA", meaning: "Illusion · माया", color: "#fd79a8", glow: "rgba(253,121,168,0.4)", baseSize: 12, baseOrbit: 780, speed: 0.00012,
-    description: "Maya is the grand illusion — the veil that makes you believe the temporary is permanent, the material is everything, and the ego is who you truly are. Maya is not evil. It is the game.",
-    howItLives: "When you catch yourself chasing something hollow, believing a lie you told yourself, or living someone else's life — that is Maya. Journal here to see through the illusion." }
+  { id: "maya",
+    whisper: "your hunger has a name",
+    lockedHint: "everything you want so badly you are afraid to admit it",
+    name: "MAYA", meaning: "Desire · माया", color: "#fd79a8", glow: "rgba(253,121,168,0.4)", baseSize: 12, baseOrbit: 780, speed: 0.00012,
+    description: "Maya is not weakness. It is the raw hunger to be seen, to have, to win, to be the greatest version of yourself alive. The mansions, the cars, the freedom to roam — Maya does not apologise for wanting. Neither should you.",
+    howItLives: "When you want something so badly it embarrasses you — when desire feels like fire you can not put out — that is Maya speaking honestly. Journal here without apology." }
 ];
 
 // ─── 224 Age-Targeted Questions ───
@@ -37,7 +65,7 @@ const QUESTIONS = {
     "31-45": ["What would you think about if you had nothing to distract you for an entire day","When did you last feel fully yourself — not a role, not a title, just you","What does your inner life look like compared to your outer life","What do you believe about who you are at your core","What part of yourself have you been neglecting to keep everything else running","What does your soul already know that your mind has been arguing with","Who are you when you are not being needed by anyone"],
     "45+": ["What are you finally ready to let go of","Who have you become and who did you always know you were","What does it feel like to be you right now — really","What have you learned about yourself that took a lifetime to understand","What is your soul trying to tell you in this season of your life","What do you know now about who you truly are that you could not have known at thirty","What does it mean to you to be at peace with yourself"]
   },
-  pranaa: {
+  seesha: {
     "16-22": ["What are you doing when you completely forget to check your phone","When did you last feel so alive that you forgot to perform for anyone","What would you do every single day if energy was never an issue","What lights you up that you have been told is not practical","When did you last feel truly electric — what were you doing","What drains you that you keep saying yes to","If your body could speak right now what would it say it needs"],
     "23-30": ["When did you last feel genuinely excited about your own life","What are you doing when hours feel like minutes","What have you stopped doing that used to make you feel alive","What does your body know that your mind keeps overriding","When did you last feel fully present — not performing, not planning","What are you waiting for before you let yourself feel alive again","What would you do differently tomorrow if you trusted your energy"],
     "31-45": ["What part of yourself did you stop feeding because life got busy","When did you last do something purely because it felt good","What used to light you up that you have quietly abandoned","If you stripped away every obligation what would your body choose to do","What are you postponing until things calm down that may never calm down","When did you last feel like yourself — really yourself","What are you carrying that is costing you your aliveness"],
@@ -78,6 +106,12 @@ const QUESTIONS = {
     "23-30": ["What belief about yourself are you carrying that was never actually yours","What version of yourself are you performing at work that is not really you","What do you want that you have been pretending you do not want","What story about your life have you been telling that is no longer true","What are you chasing that you secretly know will not make you feel complete","What would change if you stopped trying to be the person people expect","What are you hiding about yourself that would actually make people love you more"],
     "31-45": ["What are you chasing that you secretly know will not make you feel complete","What have you been performing for so long that you have forgotten who you are underneath","What do you own or pursue that is really about other people's perception of you","What would your life look like if you stopped keeping up appearances","What are you afraid would happen if people saw your actual life","What do you truly want that is different from what you have been telling yourself you want","What illusion about yourself are you finally ready to let go of"],
     "45+": ["What have you been telling yourself for years that you are finally ready to question","What image of yourself have you maintained that has cost you the most","What do you wish you had been more honest about earlier in your life","What have you been pretending is fine that has never actually been fine","What would you stop doing tomorrow if you no longer cared what anyone thought","What truth about yourself have you been avoiding that is actually freeing","What mask can you finally take off now that you have earned the right to be real"]
+  },
+  rehesya: {
+    "16-22": ["What is something you cannot explain but deeply feel to be true","What question keeps returning to you no matter how many times you think you have answered it","What do you sense about life that you cannot put into words","What do you wonder about when you cannot sleep","What part of existence feels like a mystery you were not supposed to find","What does it feel like to not know something and sit with it anyway","What would you ask the universe if it could answer"],
+    "23-30": ["What do you know in your body that your mind has never been able to confirm","What mystery about yourself have you stopped trying to solve","When did you last feel the strangeness of being alive — really feel it","What question does your life keep asking you that you have not answered yet","What do you sense is true about the world that most people around you do not see","What are you at peace with not understanding","What would change if you stopped needing life to make sense"],
+    "31-45": ["What do you hold as sacred that you could never fully explain to someone else","What mystery has your life been trying to show you that you keep looking away from","When did you last feel something larger than yourself — what was it","What do you know that you cannot prove","What part of the unknown do you find terrifying and what part do you find beautiful","What does it feel like to accept that some questions will never be answered","What truth lives in you below the reach of language"],
+    "45+": ["What have you stopped needing to understand that used to torment you","What mystery has lived inside you your whole life and never left","What do you sense is waiting on the other side of everything you know","What has life revealed to you that could not have been taught — only lived","What do you find sacred in the silence","When did the unknown stop being frightening and start being something else","What is the most honest thing you can say about what you do not know"]
   }
 };
 
@@ -143,10 +177,468 @@ const DAILY_QUOTES = [
   "The universe does not waste anything — not your pain, not your joy, not even your confusion. All of it is fuel.",
 ];
 
+// ─── Planet Classification — keyword-based, instant, no API needed ───
+function classifyJournalEntry(text) {
+  const t = text.toLowerCase();
+
+  const scores = {
+    aatma:  0, seesha: 0, kaal:   0, dharma: 0,
+    moksha: 0, karma:  0, prema:  0, maya:   0,
+  };
+
+  // AATMA — soul, self, inner fire, warrior, existence
+  const aatmaWords = [
+    // English
+    "soul","warrior","ancient","spirit","fire","exist","identity","calling","nature","light","body","self","inner","deep","true","real","born","energy","purpose","eternal","fight","battle","strength","awareness","consciousness","being","essence","core","alive","breathe","within",
+    // Hindi/Hinglish
+    "aatma","ruh","rooh","zindagi","jeena","atma","mann","dil ki awaaz","andar se","sachcha","apna aap","khud ko","meri pehchaan","apni zindagi","jiyo","jeetna","junoon","jazba","himmat","hausla","sach","sachai","asli","andar ki awaaz","apna","khud","wajood","hona","mehsoos","zinda","shakti","urja","taakat","andar","gehrai"
+  ];
+  aatmaWords.forEach(w => { if (t.includes(w)) scores.aatma += 1; });
+
+  // SEESHA — mirror, versions, masks, identity confusion
+  const seeshaWords = [
+    // English
+    "version","mask","face","who am i","identity","confused","mirror","different","pretend","fake","real me","hide","lost","don't know","multiple","sides","persona","split","fracture","reflection","role","character","image","appearance","illusion","disguise","perform","audience","hollow",
+    // Hindi/Hinglish
+    "aaina","sheeshe","kaun hoon","pehchaan","asli chehra","nakal","dikhawa","andar se kuch aur","bahar se kuch aur","nakab","naqab","chhupa","chhupana","jhooth","saccha kaun","khud se jhooth","confused hoon","samajh nahi","kaun sa main","alag alag","tukde","toot","akela","kho gaya","kho gayi","bharam","wham","dhoka","apne aap ko","kya hoon main","anjaana","anjaani","samjha nahi"
+  ];
+  seeshaWords.forEach(w => { if (t.includes(w)) scores.seesha += 1; });
+
+  // KAAL — time, past, future, anxiety, regret, memory
+  const kaalWords = [
+    // English
+    "past","future","regret","guilt","overthink","worry","anxious","anxiety","yesterday","tomorrow","memory","remember","forgot","miss","waiting","late","early","clock","days","years","ago","again","back","forward","stuck","loop","cycle","nostalgia","dread","deadline","rush","slow","fast","moment","used to","anymore","when will","what if",
+    // Hindi/Hinglish
+    "waqt","kal","beeta","pehle","baad","yaadein","yaad","sochta rehta","sochti rehti","baar baar","abhi tak","kab tak","kab hoga","kitna time","guzesha","maazi","mustaqbil","der","jaldi","guzar gaya","nikal gaya","wapas","aage","peeche","ateet","bhavisya","vartaman","ghadi","din","saal","mahine","intezaar","wait kar raha","ruk gaya","ruk gayi","atak gaya","chakkar","daur","dohraana","sochna band nahi","chinta","fikar","dar","khauf","ghabrana","restless","chain nahi"
+  ];
+  kaalWords.forEach(w => { if (t.includes(w)) scores.kaal += 1; });
+
+  // DHARMA — purpose, path, truth, growth, meaning
+  const dharmaWords = [
+    // English
+    "purpose","path","meaning","explore","truth","calling","grow","help","serve","direction","why","reason","work","create","build","mission","contribute","world","better","change","impact","right thing","duty","responsibility","values","principle","guide","lead","society","honest","integrity","wisdom","learn","teach","uplift","when i can","jab time mile","jab mauka mile","jab mauka milega","jab waqt mile","fursat mile","fursat mili","mauka milega","kisi ki madad","sabki madad","sab ke liye","logo ke liye",
+    // Hindi/Hinglish
+    "dharm","dharma","kartavya","farz","sahi raasta","seedha raasta","zindagi ka matlab","kyun jeeta hoon","kyun jeeti hoon","apna kaam","apni duty","logo ki madad","duniya ke liye","sach bolna","sachai ka raasta","seedha","neeki","bhalayi","paropkar","seva","insaan banna","achha insaan","apna purpose","mera mission","mera kaam","meri zimmedaari","meri responsibility","kuch karna","badlaav","parivartan","soch","seekhna","sikhaana","satya","nyay","dharmic","nishtha",
+    "pooja","puja","bhagwan","bhagvan","ishwar","parmatma","prabhu","waheguru","allah","dua","namaz","prayer","worship","devta","devi","mandir","masjid","gurudwara","temple","aarti","prasad","darshan","satsang","dhyan","meditation","tapasya","sadhna","sadhu","sant","guru","shishya","upkar","paropkar","daan","charity","madad karo","sabki madad","logo ki seva","bade kaam","nishkam","nishkaam seva","ibadat","bandagi","shraddha","bhakti","aastha","vishwas","iman","imaan","rasta dikhao","achha karo","sahi karo","duniya ko behtar","apna farz","apna dharm","bade ka aadar","chhoton ka pyaar","insaniyat","humanity","nek kaam","nek","wafa","sachchi seva"
+  ];
+  dharmaWords.forEach(w => { if (t.includes(w)) scores.dharma += 1; });
+
+  // MOKSHA — freedom, liberation, fearless, no limits, raw power
+  const mokshaWords = [
+    // English
+    "free","freedom","power","greatest","best","limit","break","fuck","fearless","no one","nobody","rules","liberate","escape","win","top","strong","unstoppable","release","let go","don't care","wild","rebel","refuse","defy","unchain","bold","brave","roar","phoenix","rise","conquer","sovereign","untamed",
+    // Hindi/Hinglish
+    "azaad","azaadi","mukt","mukti","azaad hona","azaad rehna","free hona","free rehna","chhoot jana","nikal jana","bhagna","chhoot gaya","chhoot gayi","band tod","tod diya","koi rok nahi","koi nahi roka","nidar","dara nahi","darne wala nahi","sab chod","chhod diya","bekaar rules","apni marzi","jo mann kare","khulla","bebak","bindas","mast","full power","sab jeet lunga","sab jeet lungi","main kaafi hoon","mujhe koi nahi rok sakta","mujhe koi nahi rok sakti","apni duniya","apna raaj","toot ke","girega nahi","giregi nahi","utha","uth gaya","uth gayi","jung","lad","ladna","haar nahi","haarna nahi"
+  ];
+  mokshaWords.forEach(w => { if (t.includes(w)) scores.moksha += 1; });
+
+  // KARMA — choices, mistakes, consequences, blame, growth through pain
+  const karmaWords = [
+    // English
+    "decision","choice","mistake","wrong","blame","consequence","result","action","did","done","made","bad","caused","effect","owe","deserve","fault","responsible","pay","karma","learned","lesson","regret","undo","fix","repair","pattern","repeat","cycle","punish","reward","reap","sow","past action","ripple",
+    // Hindi/Hinglish
+    "galti","ghalti","bhool","chuk","pachtawa","pachhtawa","pachtana","nahi karna chahiye tha","kyun kiya","kyun ki","anjaam","natija","faisla","choice ki","kiya tha","kar diya","kar diya tha","iska nateeja","meri galti hai","meri wajah se","mujhe maafi","maafi maangna","mujhe khud ko maaf","kash aisa na hota","kash na karta","kash na karti","saza","inam","jo boya","wohi kaata","jo ki so bhar","apne kiye ka","apne actions ka","zimma","uthana","seedha karna","sahi karna","sudhar","prayaschit","badla"
+  ];
+  karmaWords.forEach(w => { if (t.includes(w)) scores.karma += 1; });
+
+  // PREMA — love, longing, heartbreak, connection, people
+  const premaWords = [
+    // English
+    "love","girl","boy","relationship","heart","miss","kiss","date","hug","crush","romantic","feeling","care","together","alone","friend","family","hurt","beautiful","attracted","emotion","connection","bond","ache","longing","tender","warm","hold","touch","tears","goodbye","distance","close","intimate","attachment","devotion",
+    // Hindi/Hinglish
+    "pyaar","mohabbat","ishq","prem","dil","dhadkan","tanha","akela","akeli","koi nahi","yaad aata hai","yaad aati hai","bhool nahi pata","bhool nahi pati","woh","use","usse","uski","uska","chahna","chahta hoon","chahti hoon","teri yaad","teri kasam","teri wajah","bichhadna","judai","door","paas","saath","humsafar","dost","yaar","rishtey","rishta","parivaar","ghar","maa","baap","bhai","behan","aankhein","aansu","rona","tadap","tarasta","tarasti","dil toota","dil toot gaya","dard","dil ka dard","kaash woh","kaash tu","chahiye tha","intezaar tera","teri zaroorat"
+  ];
+  premaWords.forEach(w => { if (t.includes(w)) scores.prema += 1; });
+
+  // MAYA — desire, ambition, hunger, material, success, wanting more
+  const mayaWords = [
+    // English
+    "want","money","rich","success","car","house","mansion","famous","popular","desire","ambition","goal","achieve","status","power","wealth","dream","big","more","best","world","hunger","crave","need","earn","greed","luxury","empire","brand","flex","hustle","grind","own","acquire","reputation","recognition","applause","throne",
+    // Hindi/Hinglish
+    "chahiye","paisa","ameer","amiri","daulat","gaadi","ghar","bada ghar","bada aadmi","badi aurat","naam","shohrat","mashhoor","popular hona","duniya mein naam","safalta","safal","goal hai","achieve karna","pana","pana chahta","pana chahti","bada sapna","sapna","khwab","khwaish","tamanna","lalach","lobh","aur chahiye","zyada chahiye","kafi nahi","aur aur","bada","sabse bada","sabse aage","duniya dekhe","log dekhen","sab dekhein","mehengi","luxury","lifestyle","flex karna","dikhana","prove karna","khud ko prove","log kya sochenge","log kya sochen","duniya ko dikhana","empire","raj","takhta"
+  ];
+  mayaWords.forEach(w => { if (t.includes(w)) scores.maya += 1; });
+
+  // Find highest scoring planet
+  let best = "aatma", bestScore = 0;
+  Object.entries(scores).forEach(([planet, score]) => {
+    if (score > bestScore) { bestScore = score; best = planet; }
+  });
+
+  return best;
+}
+
 function getDailyQuote() {
   const today = new Date();
   const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
   return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
+}
+
+// ─── How It Works Modal ───
+function HowItWorks({ onClose, onJournal, mobile }) {
+  const steps = [
+    {
+      icon: "✦",
+      color: "#f5a623",
+      title: "You write. Freely.",
+      body: "No prompts. No categories. No pressure. Just open the journal and write whatever is on your mind — raw, honest, unfiltered. The universe is listening.",
+    },
+    {
+      icon: "◎",
+      color: "#a78bfa",
+      title: "The universe reads you.",
+      body: "When you release your words, Shunya reads the emotional weight of what you wrote — not just the words, but what they carry. Fear, hunger, love, time, purpose.",
+    },
+    {
+      icon: "🪐",
+      color: "#4ecdc4",
+      title: "A planet is assigned.",
+      body: "Your entry is sent to the planet that resonates most with what you felt. You don't choose — the universe does. Sometimes it surprises you. That surprise is the point.",
+    },
+    {
+      icon: "☽",
+      color: "#ffd700",
+      title: "Moons orbit your planets.",
+      body: "Every entry creates a moon. 10 moons on a planet and they collapse into your sun — SHUNYA, your core. The more you write, the bigger and brighter your sun grows.",
+    },
+    {
+      icon: "◉",
+      color: "#fd79a8",
+      title: "New planets unlock.",
+      body: "You start with one planet. As you journal, you discover others — each one a different dimension of who you are. Some you'll unlock quickly. Some will take time. Some will surprise you.",
+    },
+    {
+      icon: "∞",
+      color: "#e8a0bf",
+      title: "Your universe grows with you.",
+      body: "The more you explore, the more your solar system expands. Your core grows. New planets appear. The universe you see is not fixed — it is alive, and it reflects you.",
+    },
+  ];
+
+  return (
+    <div onClick={onClose} style={{ position:"fixed", inset:0, zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.82)", backdropFilter:"blur(20px)", animation:"overlayIn 0.4s ease", padding: mobile?"16px":0 }}>
+      <div onClick={e => e.stopPropagation()} style={{ maxWidth:mobile?"100%":580, width:"100%", maxHeight:"88vh", overflowY:"auto", background:"rgba(5,3,15,0.98)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:24, padding:mobile?"28px 22px 36px":"48px 44px", position:"relative", boxShadow:"0 40px 80px rgba(0,0,0,0.8)" }}>
+
+        <button onClick={onClose} style={{ position:"absolute", top:18, right:20, background:"none", border:"none", color:"rgba(255,255,255,0.2)", fontSize:16, cursor:"pointer" }}>✕</button>
+
+        {/* Header */}
+        <div style={{ textAlign:"center", marginBottom:40 }}>
+          <div style={{ width:10, height:10, borderRadius:"50%", background:"#f5a623", boxShadow:"0 0 20px rgba(245,166,35,0.6)", margin:"0 auto 18px", animation:"planetPulse 3s ease-in-out infinite" }} />
+          <h2 style={{ color:"rgba(255,255,255,0.85)", fontSize:mobile?20:26, fontWeight:300, letterSpacing:6, fontFamily:"Georgia,serif", marginBottom:10 }}>How Shunya Works</h2>
+          <p style={{ color:"rgba(255,255,255,0.25)", fontSize:12, letterSpacing:2, fontFamily:"Georgia,serif", fontStyle:"italic" }}>your universe, explained</p>
+        </div>
+
+        {/* Steps */}
+        <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+          {steps.map((step, i) => (
+            <div key={i} style={{ display:"flex", gap:mobile?16:22, padding:`${mobile?18:22}px 0`, borderBottom: i < steps.length-1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+              {/* Icon + line */}
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0 }}>
+                <div style={{ width:36, height:36, borderRadius:"50%", background:`${step.color}18`, border:`1px solid ${step.color}33`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, color:step.color, flexShrink:0 }}>
+                  {step.icon}
+                </div>
+                {i < steps.length-1 && (
+                  <div style={{ width:1, flex:1, minHeight:16, background:`linear-gradient(to bottom, ${step.color}22, transparent)`, marginTop:6 }} />
+                )}
+              </div>
+              {/* Content */}
+              <div style={{ paddingTop:6 }}>
+                <h3 style={{ color:step.color, fontSize:mobile?14:16, fontWeight:300, letterSpacing:2, fontFamily:"Georgia,serif", marginBottom:8 }}>{step.title}</h3>
+                <p style={{ color:"rgba(255,255,255,0.45)", fontSize:mobile?13:14, fontFamily:"Georgia,serif", lineHeight:1.85, letterSpacing:0.3 }}>{step.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom CTA */}
+        <div style={{ marginTop:32, textAlign:"center" }}>
+          <div style={{ width:40, height:1, background:"rgba(245,166,35,0.15)", margin:"0 auto 20px" }} />
+          <p style={{ color:"rgba(255,255,255,0.2)", fontSize:12, fontFamily:"Georgia,serif", fontStyle:"italic", lineHeight:1.8 }}>
+            The universe doesn't judge what you write.<br/>It only listens.
+          </p>
+          <button onClick={() => { localStorage.setItem("shunya_hiw_seen","1"); onJournal ? onJournal() : onClose(); }} style={{ marginTop:24, background:"rgba(245,166,35,0.1)", border:"1px solid rgba(245,166,35,0.3)", borderRadius:12, padding:"11px 32px", color:"#f5a623", fontSize:11, letterSpacing:3, fontFamily:"Georgia,serif", cursor:"pointer", boxShadow:"0 0 16px rgba(245,166,35,0.12)" }}>
+            begin journaling →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Free Journal Component — entry point for new users ───
+function FreeJournal({ user, onPlanetUnlocked, mobile }) {
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!text.trim() || loading) return;
+    setLoading(true);
+    const planetId = classifyJournalEntry(text);
+
+    // Show done state immediately
+    setDone(true);
+    setLoading(false);
+
+    // Fire DB writes in parallel
+    const current = JSON.parse(localStorage.getItem("shunya_unlocked") || '["aatma"]');
+    const updated = current.includes(planetId) ? current : [...current, planetId];
+
+    Promise.all([
+      supabase.from("journal_entries").insert({
+        user_id: user.id, planet_id: planetId,
+        content: text.trim(), created_at: new Date().toISOString(),
+      }),
+      supabase.from("profiles").update({ unlocked_planets: updated }).eq("id", user.id),
+    ]).catch(err => console.error("FreeJournal write error:", err));
+
+    setTimeout(() => onPlanetUnlocked(planetId), 800);
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:300, background:"#03020a", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding: mobile?"24px":"0", animation:"overlayIn 0.8s ease" }}>
+      {/* Stars background */}
+      <div style={{ position:"absolute", inset:0, overflow:"hidden", pointerEvents:"none" }}>
+        {Array.from({length:40}).map((_,i)=>(
+          <div key={i} style={{ position:"absolute", width: Math.random()*2+1, height: Math.random()*2+1, borderRadius:"50%", background:"rgba(255,255,255,0.6)", left:`${Math.random()*100}%`, top:`${Math.random()*100}%`, opacity: 0.2+Math.random()*0.5 }} />
+        ))}
+      </div>
+
+      <div style={{ position:"relative", zIndex:2, maxWidth:560, width:"100%", textAlign:"center" }}>
+        {/* Shunya glow */}
+        <div style={{ width:18, height:18, borderRadius:"50%", background:"#f5a623", boxShadow:"0 0 40px rgba(245,166,35,0.6), 0 0 80px rgba(245,166,35,0.2)", margin:"0 auto 28px", animation:"planetPulse 3s ease-in-out infinite" }} />
+
+        {/* Intro poem */}
+        <div style={{ marginBottom:36, padding:"0 8px" }}>
+          <p style={{ color:"rgba(255,255,255,0.55)", fontSize: mobile?13:15, fontFamily:"Georgia,serif", fontStyle:"italic", lineHeight:2, letterSpacing:0.3 }}>
+            Anxiety is just a paradox, to make you live inside the box<br/>
+            think outside, work, let them talk — you will get your shot.<br/>
+            <span style={{ color:"rgba(245,166,35,0.6)" }}>till then journal all you want, in this beautiful box.</span>
+          </p>
+        </div>
+
+        {/* Journal box */}
+        <div style={{ position:"relative", marginBottom:16 }}>
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="what's on your mind right now..."
+            autoFocus
+            style={{
+              width:"100%", minHeight: mobile?160:200,
+              background:"rgba(255,255,255,0.03)",
+              border:"1px solid rgba(255,255,255,0.1)",
+              borderRadius:16, padding:"20px 22px",
+              color:"rgba(255,255,255,0.82)", fontSize: mobile?15:17,
+              fontFamily:"Georgia,serif", lineHeight:1.9,
+              resize:"none", outline:"none",
+              boxSizing:"border-box", letterSpacing:0.3,
+              transition:"border 0.3s",
+            }}
+            onFocus={e => e.target.style.borderColor = "rgba(245,166,35,0.25)"}
+            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+          />
+          {text.length > 0 && (
+            <span style={{ position:"absolute", bottom:12, right:16, color:"rgba(255,255,255,0.15)", fontSize:10, fontFamily:"Georgia,serif", letterSpacing:1 }}>
+              {text.trim().split(/\s+/).filter(Boolean).length} words
+            </span>
+          )}
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={!text.trim() || loading || done}
+          style={{
+            background: done ? "rgba(245,166,35,0.15)" : text.trim() ? "rgba(245,166,35,0.12)" : "rgba(255,255,255,0.03)",
+            border: `1px solid ${text.trim() ? "rgba(245,166,35,0.3)" : "rgba(255,255,255,0.08)"}`,
+            borderRadius:12, padding:"13px 36px",
+            color: text.trim() ? "#f5a623" : "rgba(255,255,255,0.2)",
+            fontSize:12, letterSpacing:3, fontFamily:"Georgia,serif",
+            cursor: text.trim() && !loading ? "pointer" : "default",
+            transition:"all 0.3s",
+          }}
+        >
+          {done ? "✦ reading your universe..." : loading ? "..." : "release into the universe →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Planet Unlock Modal ───
+function UnlockModal({ planet, onClose, mobile }) {
+  const [step, setStep] = useState(0); // 0=dark, 1=hint, 2=name reveal
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setStep(1), 600);
+    const t2 = setTimeout(() => setStep(2), 2200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  if (!planet) return null;
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:250, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.92)", backdropFilter:"blur(20px)", animation:"overlayIn 0.5s ease" }}>
+      <div style={{ textAlign:"center", padding: mobile?"32px 24px":"48px 52px", maxWidth:460 }}>
+        {/* Planet orb */}
+        <div style={{
+          width: mobile?80:110, height: mobile?80:110, borderRadius:"50%",
+          background:`radial-gradient(circle at 38% 38%, rgba(255,255,255,0.2), ${planet.color}cc 45%, ${planet.color}66 75%, transparent)`,
+          boxShadow:`0 0 60px ${planet.color}44, 0 0 120px ${planet.color}22`,
+          margin:"0 auto 28px",
+          animation:"planetPulse 4s ease-in-out infinite",
+          transition:"all 1s ease",
+        }} />
+
+        {step >= 1 && (
+          <p style={{ color:"rgba(255,255,255,0.5)", fontSize: mobile?13:15, fontFamily:"Georgia,serif", fontStyle:"italic", lineHeight:1.9, marginBottom:20, animation:"overlayIn 0.8s ease" }}>
+            {planet.lockedHint}
+          </p>
+        )}
+
+        {step >= 2 && (
+          <>
+            <div style={{ width:30, height:1, background:`rgba(${planet.color},0.3)`, margin:"0 auto 20px", background:"rgba(255,255,255,0.1)" }} />
+            <h2 style={{ color:planet.color, fontSize: mobile?28:36, letterSpacing:10, fontWeight:300, fontFamily:"Georgia,serif", marginBottom:8, animation:"overlayIn 0.6s ease", textShadow:`0 0 30px ${planet.color}66` }}>
+              {planet.name}
+            </h2>
+            <p style={{ color:"rgba(255,255,255,0.25)", fontSize:11, letterSpacing:3, fontFamily:"Georgia,serif", marginBottom:8, animation:"overlayIn 0.6s ease" }}>
+              {planet.meaning}
+            </p>
+            <p style={{ color:planet.color, fontSize: mobile?13:15, fontStyle:"italic", fontFamily:"Georgia,serif", opacity:0.5, marginBottom:32, animation:"overlayIn 0.6s ease" }}>
+              {planet.whisper}
+            </p>
+            <p style={{ color:"rgba(255,255,255,0.2)", fontSize:11, letterSpacing:2, fontFamily:"Georgia,serif", marginBottom:28 }}>
+              YOU HAVE UNLOCKED A NEW PLANET
+            </p>
+            <button onClick={onClose} style={{ background:"rgba(255,255,255,0.04)", border:`1px solid ${planet.color}44`, borderRadius:12, padding:"11px 32px", color:planet.color, fontSize:11, letterSpacing:3, fontFamily:"Georgia,serif", cursor:"pointer" }}>
+              enter your universe →
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── QuickJournal Modal — write freely, universe decides the planet ───
+function QuickJournal({ user, unlockedPlanets, moonCounts, onDone, mobile }) {
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState(null); // { planet, isNew }
+
+  const handleSubmit = async () => {
+    if (!text.trim() || saving) return;
+    setSaving(true);
+
+    // Classify instantly — no await needed
+    const planetId = classifyJournalEntry(text);
+    const planet = PLANETS.find(p => p.id === planetId) || PLANETS[0];
+    const isNewUnlock = !unlockedPlanets.includes(planetId);
+    const cur = moonCounts[planetId] || 0;
+    const next = cur + 1;
+
+    // Show result immediately — don't wait for DB writes
+    setSaving(false);
+    setResult({ planet, isNew: isNewUnlock });
+
+    // Fire all DB writes in parallel, non-blocking
+    const writes = [
+      supabase.from("journal_entries").insert({
+        user_id: user.id, planet_id: planetId,
+        content: text.trim(), created_at: new Date().toISOString(),
+      }),
+      supabase.from("moon_progress")
+        .upsert({ user_id: user.id, planet_id: planetId, moon_count: next >= 10 ? 0 : next }, { onConflict: "user_id,planet_id" }),
+    ];
+
+    if (isNewUnlock) {
+      const updated = [...unlockedPlanets, planetId];
+      writes.push(supabase.from("profiles").update({ unlocked_planets: updated }).eq("id", user.id));
+    }
+
+    // Fire and forget — result screen already shown
+    Promise.all(writes).catch(err => console.error("Shunya write error:", err));
+  };
+
+  // Result screen
+  if (result) {
+    return (
+      <div style={{ position:"fixed", inset:0, zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.82)", backdropFilter:"blur(20px)", animation:"overlayIn 0.4s ease" }}>
+        <div style={{ maxWidth:mobile?"88vw":460, textAlign:"center", padding:mobile?"40px 28px":"56px 48px", background:"rgba(5,3,15,0.98)", border:`1px solid ${result.planet.color}22`, borderRadius:24, boxShadow:`0 0 80px ${result.planet.color}15, 0 32px 80px rgba(0,0,0,0.8)` }}>
+
+          {/* Planet orb */}
+          <div style={{ width:mobile?70:90, height:mobile?70:90, borderRadius:"50%", background:`radial-gradient(circle at 38% 38%, rgba(255,255,255,0.2), ${result.planet.color}cc 45%, ${result.planet.color}55 75%, transparent)`, boxShadow:`0 0 50px ${result.planet.color}44`, margin:"0 auto 24px", animation:"planetPulse 4s ease-in-out infinite" }} />
+
+          {result.isNew ? (
+            <>
+              <p style={{ color:"rgba(255,255,255,0.3)", fontSize:9, letterSpacing:5, fontFamily:"Georgia,serif", marginBottom:16 }}>NEW PLANET DISCOVERED</p>
+              <h2 style={{ color:result.planet.color, fontSize:mobile?26:32, letterSpacing:8, fontWeight:300, fontFamily:"Georgia,serif", marginBottom:8, textShadow:`0 0 30px ${result.planet.color}66` }}>{result.planet.name}</h2>
+              <p style={{ color:`${result.planet.color}88`, fontSize:mobile?13:15, fontStyle:"italic", fontFamily:"Georgia,serif", marginBottom:24 }}>{result.planet.whisper}</p>
+            </>
+          ) : (
+            <>
+              <p style={{ color:"rgba(255,255,255,0.3)", fontSize:9, letterSpacing:5, fontFamily:"Georgia,serif", marginBottom:16 }}>YOUR WORDS LANDED ON</p>
+              <h2 style={{ color:result.planet.color, fontSize:mobile?26:32, letterSpacing:8, fontWeight:300, fontFamily:"Georgia,serif", marginBottom:8 }}>{result.planet.name}</h2>
+              <p style={{ color:`${result.planet.color}77`, fontSize:mobile?12:14, fontStyle:"italic", fontFamily:"Georgia,serif", marginBottom:24 }}>{result.planet.whisper}</p>
+              <p style={{ color:"rgba(255,255,255,0.2)", fontSize:10, letterSpacing:2, fontFamily:"Georgia,serif", marginBottom:24 }}>a moon has been added ☽</p>
+            </>
+          )}
+
+          <div style={{ width:32, height:1, background:`rgba(245,166,35,0.2)`, margin:"0 auto 20px" }} />
+          <button onClick={() => onDone(result.planet.id, result.isNew, result.planet)} style={{ background:`rgba(245,166,35,0.08)`, border:`1px solid rgba(245,166,35,0.25)`, borderRadius:12, padding:"11px 32px", color:"#f5a623", fontSize:11, letterSpacing:3, fontFamily:"Georgia,serif", cursor:"pointer" }}>
+            {result.isNew ? "enter your universe →" : "back to universe →"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.35)", backdropFilter:"blur(6px)", animation:"overlayIn 0.4s ease" }}>
+      <div style={{ maxWidth:mobile?"96vw":640, width:"100%", background:"rgba(3,12,6,0.82)", border:"1px solid rgba(74,222,128,0.14)", borderRadius:24, padding:mobile?"24px 20px 28px":"44px 48px", boxShadow:"0 8px 40px rgba(0,0,0,0.6), 0 0 80px rgba(60,180,100,0.06)", position:"relative", maxHeight:mobile?"94vh":"88vh", overflowY:"auto", backdropFilter:"blur(12px)" }}>
+
+        <button onClick={() => onDone(null, false, null)} style={{ position:"absolute", top:18, right:20, background:"none", border:"none", color:"rgba(255,255,255,0.2)", fontSize:16, cursor:"pointer" }}>✕</button>
+
+        {/* Poem */}
+        <div style={{ textAlign:"center", marginBottom:24, padding:mobile?"0":"0 8px" }}>
+          <div style={{ width:6, height:6, borderRadius:"50%", background:"#4ade80", boxShadow:"0 0 16px rgba(74,222,128,0.6)", margin:"0 auto 18px", animation:"planetPulse 3s ease-in-out infinite" }} />
+          <p style={{
+            color:"rgba(255,255,255,0.38)", fontSize:mobile?12:13,
+            fontFamily:"Georgia,serif", fontStyle:"italic",
+            lineHeight:2.1, letterSpacing:0.3,
+          }}>
+            Anxiety is just a paradox, to make you live inside the box,<br/>
+            think outside, work, let them talk — you will get your shot,<br/>
+            to prove you can make the world rock, you better miss it not,<br/>
+            but if you did, no worries you are not lost, everything will be sort<br/>
+            <span style={{ color:"rgba(74,222,128,0.65)", fontStyle:"italic" }}>till then journal all you want, in this beautiful box.</span>
+          </p>
+          <div style={{ width:32, height:1, background:"rgba(74,222,128,0.12)", margin:"16px auto 0" }} />
+        </div>
+
+        <div style={{ position:"relative", marginBottom:12 }}>
+          <textarea
+            value={text} onChange={e => setText(e.target.value)}
+            placeholder="whatever is on your mind right now..."
+            autoFocus
+            style={{ width:"100%", minHeight:mobile?220:280, background:"rgba(74,222,128,0.03)", border:"1px solid rgba(74,222,128,0.1)", borderRadius:14, padding:"20px 22px", color:"rgba(255,255,255,0.85)", fontSize:mobile?15:17, fontFamily:"Georgia,serif", lineHeight:2.0, resize:"none", outline:"none", boxSizing:"border-box", letterSpacing:0.3, WebkitOverflowScrolling:"touch", transition:"border 0.3s" }}
+            onFocus={e => e.target.style.borderColor="rgba(74,222,128,0.28)"}
+            onBlur={e => e.target.style.borderColor="rgba(74,222,128,0.1)"}
+          />
+          {text.length > 0 && (
+            <span style={{ position:"absolute", bottom:10, right:14, color:"rgba(74,222,128,0.25)", fontSize:10, fontFamily:"Georgia,serif", letterSpacing:1 }}>
+              {text.trim().split(/\s+/).filter(Boolean).length} words
+            </span>
+          )}
+        </div>
+
+        <button onClick={handleSubmit} disabled={!text.trim() || saving} style={{ width:"100%", padding:"13px", background:text.trim()?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.03)", border:`1px solid ${text.trim()?"rgba(74,222,128,0.3)":"rgba(255,255,255,0.06)"}`, borderRadius:12, color:text.trim()?"#4ade80":"rgba(255,255,255,0.2)", fontSize:11, letterSpacing:3, fontFamily:"Georgia,serif", cursor:text.trim()&&!saving?"pointer":"default", transition:"all 0.3s", textShadow:text.trim()?"0 0 12px rgba(74,222,128,0.4)":"none" }}>
+          {saving ? "reading..." : "release into the universe →"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
@@ -165,6 +657,11 @@ export default function App() {
   const [journalText, setJournalText] = useState("");
   const [saving, setSaving] = useState(false);
   const [moonCounts, setMoonCounts] = useState({});
+  const [unlockedPlanets, setUnlockedPlanets] = useState(["aatma","seesha","kaal","dharma","moksha","karma","prema","maya"]); // all unlocked by default
+  // Keep ref in sync for canvas (avoids stale closure)
+  useEffect(() => { unlockedPlanetsRef.current = unlockedPlanets; }, [unlockedPlanets]);
+  const [showUnlockModal, setShowUnlockModal] = useState(null); // planet just unlocked
+  const [showFreeJournal, setShowFreeJournal] = useState(false); // first-time free journal
   const [sunSize, setSunSize] = useState(SUN_BASE_SIZE);
   const [starsCollected, setStarsCollected] = useState(0);
   const starsRef = useRef(0);
@@ -179,16 +676,59 @@ export default function App() {
   const [activeComet, setActiveComet] = useState(null);
   const [toast, setToast] = useState(null);
   const [showPlanetNav, setShowPlanetNav] = useState(false);
+  const [showQuickJournal, setShowQuickJournal] = useState(false);
   const [showSunCore, setShowSunCore] = useState(false);
-  const [sunCoreData, setSunCoreData] = useState(null); // { message, type: "error" | "success" }
+  const [sunCoreData, setSunCoreData] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showStreak, setShowStreak] = useState(false);
+  const [cometArriving, setCometArriving] = useState(null); // "left" | "right" | null
+  const [showRehesyaPanel, setShowRehesyaPanel] = useState(false);
+  const [showRehesyaRelease, setShowRehesyaRelease] = useState(false);
+  const [showRehesyaAnswers, setShowRehesyaAnswers] = useState(false);
+  const [showQuote, setShowQuote] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [howItWorksSeenRef] = useState(() => localStorage.getItem("shunya_hiw_seen") === "1");
+
+  // ─── Rehesya — unified state machine ───
+  const { state: rehesyaState, pendingPass, myAnswers, refresh: refreshRehesya } = useRehesyaState(user);
+  const hasActiveQuestion = rehesyaState === "traveling";
+  const newAnswers = rehesyaState === "answered";
+  const rehesyaBlinkRef = useRef(false);
+
+  useEffect(() => {
+    // State machine visibility:
+    // "idle"      → no planet, no button
+    // "traveling" → no planet, no button (question is out there)
+    // "answer"    → planet appears, button: "Answer the Universe"
+    // "answered"  → planet appears (gold glow), button: "Universe has answered"
+    const shouldShow = rehesyaState === "answer" || rehesyaState === "answered";
+    rehesyaVisibleRef.current = shouldShow;
+    rehesyaBlinkRef.current = rehesyaState === "answered"; // gold blink when answers arrived
+    setRehesyaVisible(shouldShow);
+  }, [rehesyaState]);
+
+  // Trigger roulette spin — called when new planet unlocked
+  const triggerRoulette = (planetId) => {
+    const r = rouletteRef.current;
+    r.spinning = true;
+    r.targetPlanetId = planetId;
+    r.phase = "charge";
+    r.elapsed = 0;
+  };
+
+  // ─── AI-powered personalized prompt ───
+  const { prompt: aiPrompt, loading: aiPromptLoading, regenerate: regenerateAIPrompt } = useAIPrompt(
+    user, selectedPlanet, ageGroup,
+    !!selectedPlanet && selectedPlanet.id !== "moksha"
+  );
 
   // Show toast notification — auto-dismisses
   const showToast = (message, type = "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
-  }; // currently visible comet question
+  };
   const [mobile, setMobile] = useState(window.innerWidth < 768);
-  const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 900 : Math.min(w, window.innerHeight) / 900; };
+  const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 820 : Math.min(w, window.innerHeight) / 900; };
   const scaleRef = useRef(getScale());
   const animFrameRef = useRef(null);
   const shootingStarsRef = useRef([]);
@@ -196,6 +736,10 @@ export default function App() {
   const cometsRef = useRef([]);
   const mouseRef = useRef({ x: 0, y: 0 });
   const timeRef = useRef(0);
+  const rehesyaVisibleRef = useRef(false);
+  const rehesyaPosRef = useRef(null);
+  const rouletteRef = useRef({ spinning: false, targetPlanetId: null, phase: "idle", elapsed: 0 }); // idle | charge | transfer
+  const unlockedPlanetsRef = useRef(["aatma","seesha","kaal","dharma","moksha","karma","prema","maya"]);
 
   useEffect(() => {
     const h = () => { setMobile(window.innerWidth < 768); scaleRef.current = getScale(); };
@@ -238,7 +782,7 @@ export default function App() {
     try {
       const { data: profile, error: profileErr } = await supabase.from("profiles").select("*").eq("id", authUser.id).single();
       if (profileErr) throw profileErr;
-      if (profile) { setAnonymousName(profile.anonymous_name); setSunSize(SUN_BASE_SIZE * profile.sun_size); setStarsCollected(profile.stars_collected); starsRef.current = profile.stars_collected; if (profile.age_group) setAgeGroup(profile.age_group); }
+      if (profile) { setAnonymousName(profile.anonymous_name); setSunSize(SUN_BASE_SIZE * profile.sun_size); setStarsCollected(profile.stars_collected); starsRef.current = profile.stars_collected; if (profile.age_group) setAgeGroup(profile.age_group); setUnlockedPlanets(profile.unlocked_planets && profile.unlocked_planets.length > 0 ? profile.unlocked_planets : ["aatma","seesha","kaal","dharma","moksha","karma","prema","maya"]); }
       const { data: moons, error: moonErr } = await supabase.from("moon_progress").select("*").eq("user_id", authUser.id);
       if (moonErr) throw moonErr;
       if (moons) { const c = {}; moons.forEach((m) => (c[m.planet_id] = m.moon_count)); setMoonCounts(c); }
@@ -250,8 +794,12 @@ export default function App() {
     }
   };
 
-  const handleAuth = (u, n, suggestedPlanetId) => {
+  const handleAuth = (u, n, suggestedPlanetId, isNewUser) => {
     onboardingInProgress.current = false; setUser(u); setAnonymousName(n); loadUserData(u);
+    // Show HowItWorks on first ever visit
+    if (!localStorage.getItem("shunya_hiw_seen")) {
+      setTimeout(() => setShowHowItWorks(true), 1200);
+    }
     // If mood selector suggested a planet, auto-open it after a short delay
     if (suggestedPlanetId) {
       setTimeout(() => {
@@ -275,6 +823,21 @@ export default function App() {
       if (error) throw error;
       const cur = moonCounts[selectedPlanet.id] || 0; const next = cur + 1;
       await supabase.from("moon_progress").update({ moon_count: next >= 10 ? 0 : next }).eq("user_id", user.id).eq("planet_id", selectedPlanet.id);
+
+      // ── Planet unlock mechanic — every 3rd journal entry classifies & unlocks a new planet ──
+      const totalEntries = Object.values({...moonCounts, [selectedPlanet.id]: next}).reduce((a,b)=>a+b,0);
+      if (totalEntries % 3 === 0) {
+        const locked = PLANETS.filter(p => !unlockedPlanets.includes(p.id));
+        if (locked.length > 0) {
+          const newPlanetId = classifyJournalEntry(journalText);
+          const targetPlanet = locked.find(p => p.id === newPlanetId) || locked[0];
+          const updated = [...unlockedPlanets, targetPlanet.id];
+          setUnlockedPlanets(updated);
+          await supabase.from("profiles").update({ unlocked_planets: updated }).eq("id", user.id);
+          triggerRoulette(targetPlanet.id);
+          setTimeout(() => setShowUnlockModal(targetPlanet), 4800);
+        }
+      }
     if (next >= 10) {
       // Spawn merge animation — moons fly toward the sun
       const w = window.innerWidth; const h = window.innerHeight;
@@ -336,8 +899,8 @@ export default function App() {
     await supabase.from("moon_progress").update({ moon_count: next >= 10 ? 0 : next }).eq("user_id", user.id).eq("planet_id", "moksha");
     if (next >= 10) {
       const w = window.innerWidth; const h = window.innerHeight;
-      const sunCx = w < 768 ? w / 2 : w * 0.55; const sunCy = h / 2;
-      const scale = scaleRef.current; const eR = w < 768 ? 0.85 : 0.4;
+      const sunCx = w < 768 ? w * 0.78 : w * 0.55; const sunCy = w < 768 ? h / 2 - 20 : h / 2;
+      const scale = scaleRef.current; const eR = w < 768 ? 0.75 : 0.4;
       const mokshaPlanet = PLANETS.find(p => p.id === "moksha");
       const t = timeRef.current;
       const pAngle = t * mokshaPlanet.speed; const pOrbit = mokshaPlanet.baseOrbit * scale;
@@ -425,7 +988,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     const resize = () => {
@@ -468,6 +1031,9 @@ export default function App() {
         life: 1,
         tailParticles: [],
       });
+      // Show arrival message from the correct side
+      setCometArriving(fromLeft ? "left" : "right");
+      setTimeout(() => setCometArriving(null), 3500);
     };
     const cometInterval = setInterval(spawnComet, 30000 + Math.random() * 30000);
     // Spawn first comet after 10 seconds
@@ -495,9 +1061,19 @@ export default function App() {
 
     const handleInteraction = (mx, my) => {
       const w = window.innerWidth; const h = window.innerHeight;
-      const cx = w < 768 ? w / 2 : w * 0.55; const cy = h / 2; const scale = scaleRef.current;
+      const cx = w < 768 ? w * 0.78 : w * 0.55; const cy = w < 768 ? h / 2 - 20 : h / 2; const scale = scaleRef.current;
       const eR = w < 768 ? 0.85 : 0.4;
       shootingStarsRef.current.forEach((star) => { const d = Math.hypot(star.x - mx, star.y - my); if (d < 50) { star.caught = true; collectStar(); } });
+      // Check Rehesya click — wandering planet
+      if (rehesyaPosRef.current) {
+        const rd = Math.hypot(rehesyaPosRef.current.x - mx, rehesyaPosRef.current.y - my);
+        if (rd < rehesyaPosRef.current.r) {
+          if (pendingPass) setShowRehesyaPanel(true);
+          else if (newAnswers && !hasActiveQuestion) setShowRehesyaAnswers(true);
+          else setShowRehesyaRelease(true);
+          return;
+        }
+      }
       // Check comet clicks
       cometsRef.current.forEach((comet) => {
         const d = Math.hypot(comet.x - mx, comet.y - my);
@@ -532,8 +1108,11 @@ export default function App() {
         const dist = Math.hypot(px - mx, py - my);
         const hitR = w < 768 ? Math.max(size + 22, 32) : size + 15;
         if (dist < hitR) {
+          if (!unlockedPlanetsRef.current.includes(planet.id)) {
+            showToast("Journal more to unlock this planet ✦", "info");
+            return;
+          }
           setSelectedPlanet(planet); setJournalOpen(false); setShowPastEntries(false); setSelectedMoonEntry(null);
-          // Auto-load past entries for moon display
           supabase.from("journal_entries").select("*").eq("user_id", user.id).eq("planet_id", planet.id).order("created_at", { ascending: false }).then(({ data }) => {
             setPastEntries(data || []);
           });
@@ -547,14 +1126,28 @@ export default function App() {
     canvas.addEventListener("touchstart", handleTap, { passive: false });
 
     const render = (now) => {
-      const dt = Math.min(now - lastFrameTime, 50); // cap at 50ms to avoid jumps
+      const dt = Math.min(now - lastFrameTime, 33);
       lastFrameTime = now;
       const w = window.innerWidth; const h = window.innerHeight;
       // Offset sun to the right on desktop so outer planets orbit through the left edge
       const cx = w < 768 ? w / 2 : w * 0.55;
-      const cy = h / 2;
-      const scale = scaleRef.current; const eR = w < 768 ? 0.85 : 0.4;
+      const cy = w < 768 ? h / 2 - 20 : h / 2;
+      const scale = scaleRef.current; const eR = w < 768 ? 0.75 : 0.4;
       timeRef.current += dt;
+
+      // ── Roulette energy update ──
+      const rou = rouletteRef.current;
+      if (rou.spinning) {
+        rou.elapsed += dt;
+        // Phase timing: charge (1500ms) → transfer (600ms) → done
+        if (rou.phase === "charge" && rou.elapsed > 3500) {
+          rou.phase = "transfer";
+          rou.elapsed = 0;
+        } else if (rou.phase === "transfer" && rou.elapsed > 600) {
+          rou.phase = "idle";
+          rou.spinning = false;
+        }
+      }
 
       // Smooth cursor interpolation (lerp)
       cursorSmooth.x += (cursorTarget.x - cursorSmooth.x) * 0.35;
@@ -575,7 +1168,7 @@ export default function App() {
       ctx.fillStyle = "#030108"; ctx.fillRect(0, 0, w, h);
 
       // Draw cached nebula background (rendered once to offscreen canvas)
-      if (!window._nebulaCache || window._nebulaCacheW !== w || window._nebulaCacheH !== h) {
+      if (!window._shunyaNebulaCache2 || window._shunyaNebulaW !== w || window._shunyaNebulaH !== h) {
         const offscreen = document.createElement("canvas");
         offscreen.width = w; offscreen.height = h;
         const oc = offscreen.getContext("2d");
@@ -597,38 +1190,11 @@ export default function App() {
         baseGrad.addColorStop(1, "transparent");
         oc.fillStyle = baseGrad; oc.fillRect(0, 0, w, h);
 
-        // Layer 2: Large purple nebula clouds
-        drawNeb(w * 0.1, h * 0.15, w * 0.4, 80, 20, 130, 0.18);
-        drawNeb(w * 0.88, h * 0.75, w * 0.35, 60, 15, 105, 0.16);
-        drawNeb(w * 0.45, h * 0.9, w * 0.4, 95, 35, 140, 0.14);
-
-        // Layer 3: Blue nebula wisps — like your reference images
-        drawNeb(w * 0.75, h * 0.1, w * 0.3, 30, 60, 140, 0.15);
-        drawNeb(w * 0.2, h * 0.55, w * 0.25, 25, 50, 120, 0.12);
-        drawNeb(w * 0.6, h * 0.4, w * 0.2, 40, 70, 150, 0.1);
-
-        // Layer 4: Teal/cyan accents — adds color variety like Crab Nebula
-        drawNeb(w * 0.35, h * 0.3, w * 0.15, 20, 100, 120, 0.1);
-        drawNeb(w * 0.8, h * 0.45, w * 0.12, 30, 90, 110, 0.08);
-
-        // Layer 5: Warm orange/amber glow — like the center of your first reference
-        drawNeb(w * 0.5, h * 0.5, w * 0.2, 140, 70, 25, 0.1);
-        drawNeb(w * 0.3, h * 0.7, w * 0.15, 120, 50, 20, 0.08);
-
-        // Layer 6: Small bright nebula knots — pockets of denser color
-        drawNeb(w * 0.15, h * 0.35, w * 0.08, 100, 40, 160, 0.2);
-        drawNeb(w * 0.7, h * 0.65, w * 0.1, 50, 30, 120, 0.18);
-        drawNeb(w * 0.55, h * 0.15, w * 0.07, 60, 80, 160, 0.15);
-        drawNeb(w * 0.9, h * 0.25, w * 0.06, 80, 30, 100, 0.16);
-
-        // Layer 7: Dust haze — very subtle warm overlay across middle
-        const dustGrad = oc.createLinearGradient(0, h * 0.3, w, h * 0.7);
-        dustGrad.addColorStop(0, "rgba(60,30,80,0.04)");
-        dustGrad.addColorStop(0.3, "rgba(80,40,100,0.06)");
-        dustGrad.addColorStop(0.5, "rgba(50,25,70,0.05)");
-        dustGrad.addColorStop(0.7, "rgba(30,50,90,0.04)");
-        dustGrad.addColorStop(1, "rgba(20,30,60,0.03)");
-        oc.fillStyle = dustGrad; oc.fillRect(0, 0, w, h);
+        // Very subtle deep-space wisps only — no visible colour blobs
+        drawNeb(w * 0.1, h * 0.15, w * 0.35, 20, 15, 50, 0.05);
+        drawNeb(w * 0.85, h * 0.8, w * 0.30, 15, 10, 40, 0.04);
+        drawNeb(w * 0.5, h * 0.9, w * 0.30, 20, 20, 55, 0.04);
+        drawNeb(w * 0.75, h * 0.12, w * 0.22, 10, 20, 50, 0.04);
 
         // Layer 8: Fine star dust — tiny scattered bright points
         for (let i = 0; i < 80; i++) {
@@ -640,47 +1206,119 @@ export default function App() {
           oc.fillStyle = dc; oc.fill();
         }
 
-        window._nebulaCache = offscreen;
-        window._nebulaCacheW = w;
-        window._nebulaCacheH = h;
+        window._shunyaNebulaCache2 = offscreen;
+        window._shunyaNebulaW = w;
+        window._shunyaNebulaH = h;
       }
-      ctx.drawImage(window._nebulaCache, 0, 0);
+      ctx.drawImage(window._shunyaNebulaCache2, 0, 0);
 
       bgStars.forEach((s) => { s.twinkle += s.speed; const a = 0.3 + Math.sin(s.twinkle) * 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); });
 
       const t_orb = timeRef.current;
+
+      // ─── ASTEROID BELT between Kaal (390) and Dharma (490) ───
+      const beltInner = 415 * scale, beltOuter = 465 * scale;
+      for (let i = 0; i < 220; i++) {
+        const s1 = Math.sin(i*127.1+42)*0.5+0.5, s2 = Math.sin(i*311.7+17)*0.5+0.5;
+        const s3 = Math.sin(i*54.3+99)*0.5+0.5, s4 = Math.sin(i*73.9+31)*0.5+0.5;
+        const angle = (i/220)*Math.PI*2 + t_orb*0.000035;
+        const r = beltInner + s1*(beltOuter-beltInner);
+        const ax = cx+Math.cos(angle)*r, ay = cy+Math.sin(angle)*r*eR;
+        const aSize = s2*1.8+0.4, aAlpha = s3*0.35+0.1;
+        ctx.beginPath(); ctx.arc(ax, ay, aSize, 0, Math.PI*2);
+        ctx.fillStyle = s4>0.75?`rgba(200,180,140,${aAlpha})`:s4>0.5?`rgba(160,150,130,${aAlpha})`:s4>0.25?`rgba(120,110,100,${aAlpha})`:`rgba(185,165,120,${aAlpha})`;
+        ctx.fill();
+        if (aSize>1.4) { ctx.beginPath(); ctx.arc(ax-aSize*0.3,ay-aSize*0.3,aSize*0.35,0,Math.PI*2); ctx.fillStyle=`rgba(255,245,220,${aAlpha*0.5})`; ctx.fill(); }
+      }
+      ctx.fillStyle="rgba(185,165,120,0.2)"; ctx.font=`${Math.max(7,8*scale)}px Georgia`; ctx.textAlign="center";
+      ctx.fillText("ASTEROID BELT", cx+Math.cos(Math.PI*1.28)*((beltInner+beltOuter)/2), cy+Math.sin(Math.PI*1.28)*((beltInner+beltOuter)/2)*eR);
+
       PLANETS.forEach((p) => {
         const o = p.baseOrbit * scale;
         const planetAngle = t_orb * p.speed;
+        const rou = rouletteRef.current;
+        const isTarget = rou.spinning && rou.targetPlanetId === p.id;
+        const isCharging = isTarget && rou.phase === "charge";
+        const isTransfer = isTarget && rou.phase === "transfer";
 
-        // Base orbit — white, subtle
+        // Charge progress 0→1 over 1500ms
+        const chargeProgress = isCharging ? Math.min(rou.elapsed / 3500, 1) : 0;
+        // Transfer progress 0→1 over 600ms
+        const transferProgress = isTransfer ? Math.min(rou.elapsed / 600, 1) : 0;
+
+        // Base orbit ring — brightens during charge
         ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255,255,255,0.06)";
+        ctx.strokeStyle = isCharging
+          ? `rgba(255,255,255,${0.06 + chargeProgress * 0.12})`
+          : "rgba(255,255,255,0.06)";
         ctx.lineWidth = 1; ctx.stroke();
 
-        // Color glow arc that follows the planet — draw a gradient arc around planet's position
-        const arcSpread = 0.8; // how far the color spreads along the orbit (in radians)
+        // Full orbit colour glow during charge — entire ring lights up
+        if (isCharging && chargeProgress > 0.05) {
+          const segments = 60;
+          for (let s = 0; s < segments; s++) {
+            const sa = (s / segments) * Math.PI * 2;
+            const na = ((s + 1) / segments) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(sa) * o, cy + Math.sin(sa) * o * eR);
+            ctx.lineTo(cx + Math.cos(na) * o, cy + Math.sin(na) * o * eR);
+            // Pulse the alpha with a wave
+            const wave = 0.5 + 0.5 * Math.sin(sa * 3 - t_orb * 0.008);
+            ctx.strokeStyle = p.color + Math.round(chargeProgress * wave * 0.7 * 255).toString(16).padStart(2, '0');
+            ctx.lineWidth = 2.5; ctx.stroke();
+          }
+          // Outer glow ring
+          ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = p.color + Math.round(chargeProgress * 0.3 * 255).toString(16).padStart(2, '0');
+          ctx.lineWidth = 5; ctx.stroke();
+        }
+
+        // Energy transfer — beam shoots from orbit ring to planet
+        if (isTransfer) {
+          const ease = 1 - Math.pow(1 - transferProgress, 3);
+          // Flash the orbit fading out
+          ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = p.color + Math.round((1 - ease) * 0.8 * 255).toString(16).padStart(2, '0');
+          ctx.lineWidth = 3; ctx.stroke();
+          // Energy beam: from orbit point nearest planet to planet center
+          const px2 = cx + Math.cos(planetAngle) * o;
+          const py2 = cy + Math.sin(planetAngle) * o * eR;
+          const ppx = cx + Math.cos(planetAngle) * o * 0.85;
+          const ppy = cy + Math.sin(planetAngle) * o * 0.85 * eR;
+          // Beam position interpolates toward planet
+          const bx = px2 + (ppx - px2) * ease;
+          const by = py2 + (ppy - py2) * ease;
+          ctx.beginPath(); ctx.moveTo(px2, py2); ctx.lineTo(bx, by);
+          ctx.strokeStyle = p.color + "cc"; ctx.lineWidth = 2; ctx.stroke();
+          // Planet burst glow at end of transfer
+          if (ease > 0.7) {
+            const burstR = (ease - 0.7) / 0.3;
+            const burstGlow = ctx.createRadialGradient(ppx, ppy, 0, ppx, ppy, 40 * burstR);
+            burstGlow.addColorStop(0, p.color + "88");
+            burstGlow.addColorStop(1, "transparent");
+            ctx.fillStyle = burstGlow;
+            ctx.fillRect(ppx - 40, ppy - 40, 80, 80);
+          }
+        }
+
+        // Normal color arc that follows the planet
+        const arcSpread = 0.8;
         const segments = 40;
         for (let s = 0; s < segments; s++) {
           const segAngle = planetAngle - arcSpread / 2 + (s / segments) * arcSpread;
           const nextAngle = planetAngle - arcSpread / 2 + ((s + 1) / segments) * arcSpread;
-          const distFromCenter = Math.abs((s / segments) - 0.5) * 2; // 0 at planet, 1 at edges
-          const alpha = (1 - distFromCenter * distFromCenter) * 0.35; // fade at edges
-
+          const distFromCenter = Math.abs((s / segments) - 0.5) * 2;
+          const alpha = (1 - distFromCenter * distFromCenter) * 0.35;
           const x1 = cx + Math.cos(segAngle) * o;
           const y1 = cy + Math.sin(segAngle) * o * eR;
           const x2 = cx + Math.cos(nextAngle) * o;
           const y2 = cy + Math.sin(nextAngle) * o * eR;
-
-          ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
           ctx.strokeStyle = p.color + Math.round(alpha * 255).toString(16).padStart(2, '0');
-          ctx.lineWidth = 2;
-          ctx.stroke();
+          ctx.lineWidth = 2; ctx.stroke();
         }
 
-        // Bright spot right at planet position on orbit
+        // Bright spot at planet position
         const brightX = cx + Math.cos(planetAngle) * o;
         const brightY = cy + Math.sin(planetAngle) * o * eR;
         const brightGlow = ctx.createRadialGradient(brightX, brightY, 0, brightX, brightY, 12);
@@ -777,7 +1415,52 @@ export default function App() {
         const pulseSize = size * (1 + Math.sin(t * 0.001 + p.baseOrbit) * 0.06);
         const glowRadius = pulseSize * (4 + Math.sin(t * 0.0015 + p.baseOrbit) * 1.2);
 
-        const spinSpeed = 0.0008 + p.baseOrbit * 0.0000005;
+        const isUnlocked = unlockedPlanetsRef.current.includes(p.id);
+        const isRoulettTarget = rouletteRef.current.spinning && rouletteRef.current.targetPlanetId === p.id;
+
+        // ── LOCKED PLANET — dim but hinting at its true colour ──
+        if (!isUnlocked) {
+          // Orbit ring in planet's colour — faint
+          ctx.beginPath(); ctx.ellipse(cx, cy, orbit, orbit * eR, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = p.color + "18"; ctx.lineWidth = 1; ctx.stroke();
+
+          const lockedPulse = size * (1 + Math.sin(t * 0.0008 + p.baseOrbit) * 0.05);
+
+          // Outer colour glow — very dim, just a whisper of what it could be
+          const outerGlow = ctx.createRadialGradient(px, py, 0, px, py, lockedPulse * 3.5);
+          outerGlow.addColorStop(0, p.color + "22");
+          outerGlow.addColorStop(0.5, p.color + "0a");
+          outerGlow.addColorStop(1, "transparent");
+          ctx.fillStyle = outerGlow;
+          ctx.fillRect(px - lockedPulse*3.5, py - lockedPulse*3.5, lockedPulse*7, lockedPulse*7);
+
+          // Planet body — dark desaturated version of its colour
+          const lockedGrad = ctx.createRadialGradient(px - size*0.25, py - size*0.25, 0, px, py, lockedPulse);
+          lockedGrad.addColorStop(0, p.color + "55");  // faint colour at highlight
+          lockedGrad.addColorStop(0.4, p.color + "28"); // mid
+          lockedGrad.addColorStop(0.8, "rgba(15,12,22,0.85)"); // dark towards edge
+          lockedGrad.addColorStop(1, "rgba(8,6,14,0.9)");
+          ctx.beginPath(); ctx.arc(px, py, lockedPulse, 0, Math.PI * 2);
+          ctx.fillStyle = lockedGrad; ctx.fill();
+
+          // Thin colour rim — just enough to feel alive
+          ctx.beginPath(); ctx.arc(px, py, lockedPulse, 0, Math.PI * 2);
+          ctx.strokeStyle = p.color + "33"; ctx.lineWidth = 1; ctx.stroke();
+
+          // Question mark in planet's colour
+          ctx.fillStyle = p.color + "55";
+          ctx.font = `${Math.max(size*0.7, 8)}px Georgia`;
+          ctx.textAlign = "center";
+          ctx.fillText("?", px, py + size*0.25);
+
+          // Dots below instead of name
+          ctx.fillStyle = p.color + "30";
+          ctx.font = `${Math.max(7, 8 * scale)}px Georgia`;
+          ctx.fillText("· · ·", px, py + size + 16);
+          return;
+        }
+
+const spinSpeed = 0.0008 + p.baseOrbit * 0.0000005;
         const spinAngle = t * spinSpeed;
         const hlOffsetX = Math.cos(spinAngle) * size * 0.3;
         const hlOffsetY = Math.sin(spinAngle) * size * 0.15;
@@ -806,12 +1489,12 @@ export default function App() {
           baseGrad.addColorStop(0.3, "#e07840");
           baseGrad.addColorStop(0.7, "#a04520");
           baseGrad.addColorStop(1, "#4a1a08");
-        } else if (p.id === "pranaa") {
-          // Electric teal core — bioluminescent, alive
-          baseGrad.addColorStop(0, "#b8fff5");
-          baseGrad.addColorStop(0.3, "#4ecdc4");
-          baseGrad.addColorStop(0.7, "#1a8a80");
-          baseGrad.addColorStop(1, "#0a3a36");
+        } else if (p.id === "seesha") {
+          // Ice mirror — crystalline, reflective, layered blue
+          baseGrad.addColorStop(0, "#e8f8ff");
+          baseGrad.addColorStop(0.3, "#7dd3fc");
+          baseGrad.addColorStop(0.7, "#1e6fa8");
+          baseGrad.addColorStop(1, "#0a2a40");
         } else if (p.id === "kaal") {
           // Deep violet — swirling time, cosmic mystery
           baseGrad.addColorStop(0, "#d4b8ff");
@@ -864,13 +1547,16 @@ export default function App() {
             ctx.lineTo(px + Math.cos(crackAngle + 0.5) * size * 0.8, py + Math.sin(crackAngle + 0.3) * size * 0.6);
             ctx.strokeStyle = "rgba(255,160,60,0.15)"; ctx.lineWidth = 1.5; ctx.stroke();
           }
-        } else if (p.id === "pranaa") {
-          // Bioluminescent veins
-          for (let i = 0; i < 4; i++) {
-            const vAngle = spinAngle * 0.5 + i * 1.6;
+        } else if (p.id === "seesha") {
+          // Mirror facets — geometric reflections
+          for (let i = 0; i < 3; i++) {
+            const fAngle = spinAngle * 0.3 + i * 2.09;
             ctx.beginPath();
-            ctx.arc(px + Math.cos(vAngle) * size * 0.4, py + Math.sin(vAngle) * size * 0.3, size * 0.15, 0, Math.PI);
-            ctx.strokeStyle = "rgba(180,255,240,0.12)"; ctx.lineWidth = 1; ctx.stroke();
+            ctx.moveTo(px, py);
+            ctx.lineTo(px + Math.cos(fAngle)*size*0.7, py + Math.sin(fAngle)*size*0.5);
+            ctx.lineTo(px + Math.cos(fAngle+0.8)*size*0.6, py + Math.sin(fAngle+0.8)*size*0.45);
+            ctx.closePath();
+            ctx.strokeStyle = "rgba(200,240,255,0.08)"; ctx.lineWidth = 0.8; ctx.stroke();
           }
         } else if (p.id === "kaal") {
           // Time spiral rings
@@ -926,29 +1612,121 @@ export default function App() {
         hl.addColorStop(1, "transparent");
         ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = hl; ctx.fill();
 
-        // ── Rim light — stronger atmosphere glow ──
+        // ── Rim light ──
         const rim = ctx.createRadialGradient(px, py, pulseSize * 0.82, px, py, pulseSize * 1.1);
-        rim.addColorStop(0, "transparent");
-        rim.addColorStop(0.6, p.color + "20");
-        rim.addColorStop(0.85, p.color + "12");
-        rim.addColorStop(1, p.color + "06");
+        rim.addColorStop(0, "transparent"); rim.addColorStop(0.6, p.color + "20");
+        rim.addColorStop(0.85, p.color + "12"); rim.addColorStop(1, p.color + "06");
         ctx.beginPath(); ctx.arc(px, py, pulseSize * 1.1, 0, Math.PI * 2); ctx.fillStyle = rim; ctx.fill();
+
+        // ── KARMA RINGS ──
+        if (p.id === "karma") {
+          const tilt = 0.28;
+          ctx.save(); ctx.translate(px, py);
+          ctx.beginPath(); ctx.ellipse(0, 0, pulseSize*2.6, pulseSize*0.55*Math.cos(tilt), tilt, Math.PI, Math.PI*2);
+          const rb1 = ctx.createLinearGradient(-pulseSize*2.6,0,pulseSize*2.6,0);
+          rb1.addColorStop(0,"rgba(255,80,80,0)"); rb1.addColorStop(0.25,"rgba(255,80,80,0.22)"); rb1.addColorStop(0.5,"rgba(255,110,110,0.35)"); rb1.addColorStop(0.75,"rgba(255,80,80,0.22)"); rb1.addColorStop(1,"rgba(255,80,80,0)");
+          ctx.strokeStyle=rb1; ctx.lineWidth=pulseSize*0.28; ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(0, 0, pulseSize*1.85, pulseSize*0.4*Math.cos(tilt), tilt, Math.PI, Math.PI*2);
+          const rb2 = ctx.createLinearGradient(-pulseSize*1.85,0,pulseSize*1.85,0);
+          rb2.addColorStop(0,"rgba(200,60,60,0)"); rb2.addColorStop(0.3,"rgba(220,70,70,0.28)"); rb2.addColorStop(0.5,"rgba(255,90,90,0.4)"); rb2.addColorStop(0.7,"rgba(220,70,70,0.28)"); rb2.addColorStop(1,"rgba(200,60,60,0)");
+          ctx.strokeStyle=rb2; ctx.lineWidth=pulseSize*0.14; ctx.stroke();
+          ctx.restore();
+          ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI*2); ctx.fillStyle=baseGrad; ctx.fill();
+          ctx.save(); ctx.translate(px, py);
+          ctx.beginPath(); ctx.ellipse(0, 0, pulseSize*2.6, pulseSize*0.55*Math.cos(tilt), tilt, 0, Math.PI);
+          ctx.strokeStyle=rb1; ctx.lineWidth=pulseSize*0.28; ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(0, 0, pulseSize*1.85, pulseSize*0.4*Math.cos(tilt), tilt, 0, Math.PI);
+          ctx.strokeStyle=rb2; ctx.lineWidth=pulseSize*0.14; ctx.stroke();
+          ctx.restore();
+        }
 
         // Planet name
         ctx.fillStyle = p.color; ctx.font = `${Math.max(8, 10 * scale)}px Georgia`; ctx.textAlign = "center";
-        ctx.globalAlpha = 0.8; ctx.fillText(p.name, px, py + size + 16); ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = 0.85; ctx.fillText(p.name, px, py + size + 16); ctx.globalAlpha = 1.0;
 
         const mc = moonCounts[p.id] || 0;
         for (let i = 0; i < mc; i++) {
-          const ma = t * 0.002 + (i * Math.PI * 2) / Math.max(mc, 1); const md = size + 10 + i * 3;
-          const mmx = px + Math.cos(ma) * md; const mmy = py + Math.sin(ma) * md * 0.6;
-          // Moon glow
-          const mg = ctx.createRadialGradient(mmx, mmy, 0, mmx, mmy, Math.max(3, 5 * scale));
-          mg.addColorStop(0, "rgba(255,255,255,0.5)"); mg.addColorStop(1, "transparent");
-          ctx.fillStyle = mg; ctx.fillRect(mmx - 5 * scale, mmy - 5 * scale, 10 * scale, 10 * scale);
-          ctx.beginPath(); ctx.arc(mmx, mmy, Math.max(1.5, 2.5 * scale), 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.fill();
+          const ma = t*0.002+(i*Math.PI*2)/Math.max(mc,1); const md = size+10+i*3;
+          const mmx = px+Math.cos(ma)*md; const mmy = py+Math.sin(ma)*md*0.6;
+          const mg = ctx.createRadialGradient(mmx,mmy,0,mmx,mmy,Math.max(3,5*scale));
+          mg.addColorStop(0,"rgba(255,255,255,0.5)"); mg.addColorStop(1,"transparent");
+          ctx.fillStyle=mg; ctx.fillRect(mmx-5*scale,mmy-5*scale,10*scale,10*scale);
+          ctx.beginPath(); ctx.arc(mmx,mmy,Math.max(1.5,2.5*scale),0,Math.PI*2); ctx.fillStyle="rgba(255,255,255,0.8)"; ctx.fill();
         }
       });
+
+      // ─── REHESYA — wandering planet, only in "answer" or "answered" states ───
+      if (rehesyaVisibleRef.current) {
+        const isAnswered = rehesyaBlinkRef.current; // "answered" state = gold
+        // Wander freely across the canvas (not on a fixed orbit)
+        const rx = cx + Math.sin(t * 0.00018) * w * 0.26 + Math.cos(t * 0.00009) * w * 0.08;
+        const ry = cy + Math.cos(t * 0.00013) * h * 0.2 + Math.sin(t * 0.00021) * h * 0.06;
+        const rSize = Math.max(13 * scale, 10);
+        const pulse = 1 + Math.sin(t * 0.0018) * 0.08;
+        const rps = rSize * pulse;
+
+        // Gold blink when answered, blue glow when answering
+        const glowR = isAnswered ? "255,215,0" : "56,189,248";
+        const blinkAlpha = isAnswered ? (0.65 + Math.sin(t * 0.006) * 0.35) : 1;
+
+        ctx.globalAlpha = blinkAlpha;
+
+        // Flash ring when answered — gold electric pulse
+        if (isAnswered) {
+          const flashR = rps * (3 + Math.sin(t * 0.006) * 1.5);
+          const flashG = ctx.createRadialGradient(rx, ry, rps, rx, ry, flashR);
+          flashG.addColorStop(0, `rgba(255,215,0,${0.22 * Math.abs(Math.sin(t * 0.006))})`);
+          flashG.addColorStop(1, "transparent");
+          ctx.fillStyle = flashG;
+          ctx.fillRect(rx - flashR, ry - flashR, flashR * 2, flashR * 2);
+        }
+
+        // Outer glow layers
+        for (let g = 3; g >= 1; g--) {
+          const gr = ctx.createRadialGradient(rx, ry, 0, rx, ry, rps * (2.2 + g));
+          gr.addColorStop(0, `rgba(${glowR},${isAnswered ? 0.2 / g : 0.1 / g})`);
+          gr.addColorStop(1, "transparent");
+          ctx.fillStyle = gr;
+          ctx.fillRect(rx - rps * (2.2 + g), ry - rps * (2.2 + g), rps * (4.4 + g * 2), rps * (4.4 + g * 2));
+        }
+
+        // Planet body — blue when answering, gold when answered
+        const rg = ctx.createRadialGradient(rx - rps * 0.28, ry - rps * 0.28, 0, rx, ry, rps);
+        if (isAnswered) {
+          rg.addColorStop(0, "#fffde8"); rg.addColorStop(0.25, "#ffd700");
+          rg.addColorStop(0.6, "#b45309"); rg.addColorStop(1, "#451a03");
+        } else {
+          rg.addColorStop(0, "rgba(255,255,255,0.98)"); rg.addColorStop(0.25, "#bae6fd");
+          rg.addColorStop(0.6, "#7dd3fc"); rg.addColorStop(0.85, "#0284c7"); rg.addColorStop(1, "#0c4a6e");
+        }
+        ctx.beginPath(); ctx.arc(rx, ry, rps, 0, Math.PI * 2);
+        ctx.fillStyle = rg; ctx.fill();
+
+        // Orbiting rings — mystery effect
+        ctx.save(); ctx.translate(rx, ry); ctx.rotate(t * 0.0005);
+        ctx.beginPath(); ctx.ellipse(0, 0, rps * 2.0, rps * 0.55, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${glowR},${0.3 + Math.sin(t * 0.002) * 0.1})`; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.rotate(0.7);
+        ctx.beginPath(); ctx.ellipse(0, 0, rps * 1.5, rps * 0.38, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${glowR},${0.15 + Math.sin(t * 0.003) * 0.06})`; ctx.lineWidth = 0.8; ctx.stroke();
+        ctx.restore();
+
+        // Specular highlight
+        const rhl = ctx.createRadialGradient(rx - rps * 0.3, ry - rps * 0.3, 0, rx, ry, rps * 0.7);
+        rhl.addColorStop(0, "rgba(255,255,255,0.6)"); rhl.addColorStop(0.5, "rgba(255,255,255,0.1)"); rhl.addColorStop(1, "transparent");
+        ctx.beginPath(); ctx.arc(rx, ry, rps, 0, Math.PI * 2); ctx.fillStyle = rhl; ctx.fill();
+
+        // Label
+        ctx.shadowColor = isAnswered ? "rgba(255,215,0,0.9)" : "rgba(56,189,248,0.6)";
+        ctx.shadowBlur = isAnswered ? 18 : 8;
+        ctx.fillStyle = isAnswered ? "#ffd700" : "#7dd3fc";
+        ctx.font = `${Math.max(9, 11 * scale)}px Georgia`; ctx.textAlign = "center";
+        ctx.globalAlpha = 0.75 + Math.sin(t * 0.002) * 0.2;
+        ctx.fillText("REHESYA", rx, ry + rSize + 18);
+        ctx.shadowBlur = 0; ctx.shadowColor = "transparent"; ctx.globalAlpha = 1;
+
+        rehesyaPosRef.current = { x: rx, y: ry, r: rps + 18 };
+      }
 
       const mouse = mouseRef.current;
       shootingStarsRef.current = shootingStarsRef.current.filter((s) => {
@@ -1075,6 +1853,16 @@ export default function App() {
   );
   if (!user) return <AuthPage onAuth={handleAuth} onSignupStart={() => { onboardingInProgress.current = true; }} />;
 
+  // FreeJournal only shows when explicitly triggered via state
+  if (showFreeJournal) {
+    return <FreeJournal user={user} mobile={mobile} onPlanetUnlocked={(pid) => {
+      const p = PLANETS.find(pl => pl.id === pid);
+      setUnlockedPlanets(prev => prev.includes(pid) ? prev : [...prev, pid]);
+      setShowFreeJournal(false);
+      setShowUnlockModal(p);
+    }} />;
+  }
+
   // ─── Overlay: determines what's shown over the solar system ───
   const hasOverlay = selectedPlanet !== null || showAgePrompt || showDharmaTodos || showSunCore;
 
@@ -1111,62 +1899,184 @@ export default function App() {
       {/* Top bar — Desktop */}
       {!mobile && !hasOverlay && (
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
-          {/* Top bar content */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 28px" }}>
-            {/* Left — Logo + tagline */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <span style={{ color: "#f5a623", fontSize: 18, letterSpacing: 8, fontWeight: 300, textShadow: "0 0 20px rgba(245,166,35,0.15)" }}>SHUNYA</span>
-              <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-              <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, letterSpacing: 3, textTransform: "uppercase" }}>For your 3 AM thoughts</span>
-            </div>
-            {/* Right — Nav items */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0 28px", height: 56,
+            background: "linear-gradient(to bottom, rgba(2,1,8,0.97) 0%, rgba(2,1,8,0.85) 80%, transparent 100%)",
+            backdropFilter: "blur(20px)",
+            borderBottom: "1px solid rgba(245,166,35,0.08)",
+          }}>
+            {/* LEFT — Logo */}
             <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-              <button onClick={() => setShowPlanetNav(!showPlanetNav)} style={{
-                background: showPlanetNav ? "rgba(245,166,35,0.1)" : "transparent",
-                border: `1px solid ${showPlanetNav ? "rgba(245,166,35,0.25)" : "rgba(255,255,255,0.08)"}`,
+              <span style={{
+                color: "#f5a623", fontSize: 20, letterSpacing: 11, fontWeight: 300,
+                fontFamily: "Georgia, serif",
+                textShadow: "0 0 40px rgba(245,166,35,0.6), 0 0 80px rgba(245,166,35,0.2)",
+                animation: "logoGlow 3s ease-in-out infinite alternate",
+              }}>SHUNYA</span>
+              <div style={{ width: 1, height: 20, background: "rgba(245,166,35,0.15)" }} />
+              <span style={{
+                color: "rgba(255,255,255,0.35)", fontSize: 11,
+                letterSpacing: 3, fontStyle: "italic", fontFamily: "Georgia, serif",
+                textShadow: "0 0 12px rgba(255,255,255,0.08)",
+              }}>for your 3 am thoughts</span>
+            </div>
+
+            {/* RIGHT — Nav */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+
+              {/* Start Journal — quick entry, pulses to guide new users */}
+              <button onClick={() => setShowQuickJournal(true)} style={{
+                background: "linear-gradient(135deg, rgba(245,166,35,0.2), rgba(245,166,35,0.08))",
+                border: "1px solid rgba(245,166,35,0.5)",
+                borderRadius: 10, padding: "7px 18px", cursor: "pointer",
+                color: "#f5a623", fontSize: 11, letterSpacing: 2,
+                fontFamily: "Georgia, serif",
+                boxShadow: "0 0 18px rgba(245,166,35,0.2)",
+                textShadow: "0 0 10px rgba(245,166,35,0.5)",
+                display: "flex", alignItems: "center", gap: 7,
+                animation: "journalPulse 2.5s ease-in-out infinite",
+              }}>✦ Journal</button>
+
+              {/* How it works */}
+              <button onClick={() => setShowHowItWorks(true)} style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.1)",
                 borderRadius: 10, padding: "7px 16px", cursor: "pointer",
-                color: showPlanetNav ? "#f5a623" : "rgba(255,255,255,0.45)",
-                fontSize: 11, letterSpacing: 1.5, fontFamily: "Georgia, serif",
-                transition: "all 0.3s", display: "flex", alignItems: "center", gap: 6,
-              }}><span style={{ fontSize: 8 }}>✦</span> Planets</button>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "rgba(255,215,0,0.05)", borderRadius: 8, border: "1px solid rgba(255,215,0,0.1)" }}>
-                <span style={{ color: "rgba(255,215,0,0.9)", fontSize: 12 }}>★</span>
-                <span style={{ color: "rgba(255,215,0,0.7)", fontSize: 12, fontFamily: "Georgia, serif" }}>{starsCollected}</span>
+                color: "rgba(255,255,255,0.45)", fontSize: 11, letterSpacing: 2,
+                fontFamily: "Georgia, serif", transition: "all 0.2s",
+                display: "flex", alignItems: "center", gap: 6,
+              }}>✦ How it works</button>
+
+              {/* Planets */}
+              <button onClick={() => setShowPlanetNav(!showPlanetNav)} style={{
+                background: showPlanetNav ? "rgba(245,166,35,0.15)" : "rgba(255,255,255,0.05)",
+                border: `1px solid ${showPlanetNav ? "rgba(245,166,35,0.4)" : "rgba(255,255,255,0.12)"}`,
+                borderRadius: 10, padding: "7px 16px", cursor: "pointer",
+                color: showPlanetNav ? "#f5a623" : "rgba(255,255,255,0.6)",
+                fontSize: 11, letterSpacing: 2, fontFamily: "Georgia, serif",
+                transition: "all 0.2s", display: "flex", alignItems: "center", gap: 7,
+                boxShadow: showPlanetNav ? "0 0 20px rgba(245,166,35,0.2), inset 0 0 10px rgba(245,166,35,0.05)" : "inset 0 0 0 0 transparent",
+              }}><span style={{ fontSize: 7, opacity: 0.7 }}>✦</span> Planets</button>
+
+              {/* Stars */}
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
+                background: "rgba(255,215,0,0.08)", borderRadius: 10,
+                border: "1px solid rgba(255,215,0,0.2)",
+                boxShadow: "0 0 16px rgba(255,215,0,0.08)",
+              }}>
+                <span style={{ color: "#ffd700", fontSize: 13, filter: "drop-shadow(0 0 5px rgba(255,215,0,0.7))" }}>★</span>
+                <span style={{ color: "rgba(255,215,0,0.9)", fontSize: 12, fontFamily: "Georgia, serif", fontWeight: 300 }}>{starsCollected}</span>
               </div>
-              <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.06)" }} />
-              <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, letterSpacing: 1, fontFamily: "Georgia, serif" }}>{anonymousName}</span>
-              <button onClick={handleLogout} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "6px 14px", color: "rgba(255,255,255,0.3)", fontSize: 10, cursor: "pointer", letterSpacing: 1.5, transition: "all 0.3s" }}>EXIT</button>
+
+              <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.08)", margin: "0 2px" }} />
+
+              {/* Name */}
+              <span style={{
+                color: "rgba(255,255,255,0.45)", fontSize: 12, letterSpacing: 2,
+                fontFamily: "Georgia, serif", fontStyle: "italic",
+                padding: "0 8px",
+              }}>{anonymousName}</span>
+
+              <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.08)", margin: "0 2px" }} />
+
+              {/* Quote */}
+              <button onClick={() => setShowQuote(true)} title="Quote of the day" style={{
+                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 9, padding: "6px 13px", cursor: "pointer",
+                color: "rgba(255,255,255,0.5)", fontSize: 17, fontFamily: "Georgia, serif",
+                lineHeight: 1, transition: "all 0.2s",
+              }}>"</button>
+
+              {/* Streak */}
+              <button onClick={() => setShowStreak(true)} title="Journaling streak" style={{
+                background: "rgba(255,100,50,0.07)", border: "1px solid rgba(255,120,60,0.18)",
+                borderRadius: 9, padding: "6px 12px", cursor: "pointer", fontSize: 14,
+                boxShadow: "0 0 10px rgba(255,100,50,0.06)", transition: "all 0.2s",
+              }}>🔥</button>
+
+              {/* Feedback */}
+              <button onClick={() => setShowFeedback(true)} style={{
+                background: "rgba(245,166,35,0.1)", border: "1px solid rgba(245,166,35,0.28)",
+                borderRadius: 9, padding: "7px 18px",
+                color: "rgba(245,166,35,0.85)", fontSize: 10, cursor: "pointer",
+                letterSpacing: 2, fontFamily: "Georgia, serif",
+                boxShadow: "0 0 16px rgba(245,166,35,0.12), inset 0 0 8px rgba(245,166,35,0.04)",
+                textShadow: "0 0 12px rgba(245,166,35,0.5)", transition: "all 0.2s",
+              }}>FEEDBACK</button>
+
+              {/* Exit */}
+              <button onClick={handleLogout} style={{
+                background: "transparent", border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 9, padding: "7px 14px", color: "rgba(255,255,255,0.25)",
+                fontSize: 10, cursor: "pointer", letterSpacing: 2,
+                fontFamily: "Georgia, serif", transition: "all 0.2s",
+              }}>EXIT</button>
             </div>
           </div>
-          {/* Golden accent line */}
-          <div style={{ height: 1, background: "linear-gradient(90deg, transparent 5%, rgba(245,166,35,0.15) 20%, rgba(245,166,35,0.08) 50%, rgba(245,166,35,0.15) 80%, transparent 95%)" }} />
+          {/* Accent line */}
+          <div style={{ height: 1, background: "linear-gradient(90deg, transparent 2%, rgba(245,166,35,0.05) 10%, rgba(245,166,35,0.3) 30%, rgba(255,210,80,0.5) 50%, rgba(245,166,35,0.3) 70%, rgba(245,166,35,0.05) 90%, transparent 98%)", boxShadow: "0 0 12px rgba(245,166,35,0.18), 0 1px 20px rgba(245,166,35,0.06)" }} />
         </div>
       )}
 
       {/* Top bar — Mobile */}
       {mobile && !hasOverlay && (
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: "#f5a623", fontSize: 14, letterSpacing: 5, fontWeight: 300 }}>SHUNYA</span>
+        <div style={{ position:"absolute", top:0, left:0, right:0, zIndex:10 }}>
+          <div style={{ display:"flex", alignItems:"center", padding:"0 14px", height:50, gap:8 }}>
+            <button onClick={() => setShowQuickJournal(true)} style={{ flexShrink:0, background:"rgba(245,166,35,0.12)", border:"1px solid rgba(245,166,35,0.4)", borderRadius:8, padding:"5px 14px", cursor:"pointer", color:"#f5a623", fontSize:9, letterSpacing:1.5, fontFamily:"Georgia,serif", animation:"journalPulse 2.5s ease-in-out infinite", whiteSpace:"nowrap" }}>✦ Journal</button>
+            <button onClick={() => setShowPlanetNav(!showPlanetNav)} style={{ flexShrink:0, background:showPlanetNav?"rgba(245,166,35,0.14)":"rgba(255,255,255,0.06)", border:`1px solid ${showPlanetNav?"rgba(245,166,35,0.35)":"rgba(255,255,255,0.12)"}`, borderRadius:8, padding:"5px 12px", cursor:"pointer", color:showPlanetNav?"#f5a623":"rgba(255,255,255,0.55)", fontSize:9, letterSpacing:1.5, fontFamily:"Georgia,serif", whiteSpace:"nowrap" }}>✦ Planets</button>
+            <button onClick={() => setShowHowItWorks(true)} style={{ flexShrink:0, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 11px", cursor:"pointer", color:"rgba(255,255,255,0.4)", fontFamily:"Georgia,serif", fontSize:11 }}>?</button>
+            <div style={{ flexShrink:0, display:"flex", alignItems:"center", gap:3, padding:"4px 10px", background:"rgba(255,215,0,0.08)", borderRadius:7, border:"1px solid rgba(255,215,0,0.2)" }}>
+              <span style={{ color:"#ffd700", fontSize:11, filter:"drop-shadow(0 0 4px rgba(255,215,0,0.6))" }}>★</span>
+              <span style={{ color:"rgba(255,215,0,0.9)", fontSize:10 }}>{starsCollected}</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button onClick={() => setShowPlanetNav(!showPlanetNav)} style={{
-                background: showPlanetNav ? "rgba(245,166,35,0.12)" : "rgba(255,255,255,0.06)",
-                border: `1px solid ${showPlanetNav ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.08)"}`,
-                borderRadius: 8, padding: "6px 10px", cursor: "pointer",
-                color: showPlanetNav ? "#f5a623" : "rgba(255,255,255,0.4)",
-                fontSize: 9, letterSpacing: 1, fontFamily: "Georgia, serif",
-              }}>✦ Planets</button>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", background: "rgba(255,215,0,0.05)", borderRadius: 6, border: "1px solid rgba(255,215,0,0.1)" }}>
-                <span style={{ color: "rgba(255,215,0,0.8)", fontSize: 10 }}>★</span>
-                <span style={{ color: "rgba(255,215,0,0.6)", fontSize: 10 }}>{starsCollected}</span>
-              </div>
-              <button onClick={handleLogout} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, padding: "4px 10px", color: "rgba(255,255,255,0.3)", fontSize: 9, cursor: "pointer" }}>EXIT</button>
-            </div>
+            <div style={{ width:1, height:14, background:"rgba(255,255,255,0.08)", flexShrink:0 }} />
+            <span style={{ color:"rgba(255,255,255,0.35)", fontSize:9, letterSpacing:1, fontStyle:"italic", fontFamily:"Georgia,serif", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{anonymousName}</span>
           </div>
-          {/* Golden accent line — mobile */}
-          <div style={{ height: 1, background: "linear-gradient(90deg, transparent 5%, rgba(245,166,35,0.12) 30%, rgba(245,166,35,0.06) 50%, rgba(245,166,35,0.12) 70%, transparent 95%)" }} />
+          <div style={{ height:1, background:"linear-gradient(90deg, transparent 3%, rgba(245,166,35,0.05) 15%, rgba(245,166,35,0.3) 35%, rgba(255,210,80,0.45) 50%, rgba(245,166,35,0.3) 65%, rgba(245,166,35,0.05) 85%, transparent 97%)", boxShadow:"0 0 10px rgba(245,166,35,0.15)" }} />
+        </div>
+      )}
+
+      {/* Bottom bar — Mobile */}
+      {mobile && !hasOverlay && (
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:10 }}>
+          <div style={{ height:1, background:"linear-gradient(90deg, transparent 3%, rgba(245,166,35,0.08) 20%, rgba(245,166,35,0.2) 50%, rgba(245,166,35,0.08) 80%, transparent 97%)" }} />
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-around", padding:"8px 8px 16px", background:"rgba(2,1,8,0.92)", backdropFilter:"blur(16px)" }}>
+
+            {/* Rehesya — hidden when question is traveling, shown otherwise */}
+            {!hasActiveQuestion || pendingPass || newAnswers ? (
+              <>
+                <button onClick={() => { if(pendingPass) setShowRehesyaPanel(true); else if(newAnswers&&!hasActiveQuestion) setShowRehesyaAnswers(true); else setShowRehesyaRelease(true); }} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3, background:"none", border:"none", cursor:"pointer", padding:"2px 6px" }}>
+                  <div style={{ width:7, height:7, borderRadius:"50%", background:"#38bdf8", boxShadow:`0 0 ${pendingPass||newAnswers?"10px":"6px"} rgba(56,189,248,${pendingPass||newAnswers?0.9:0.6})`, animation:"rehesyaPulse 1.5s ease-in-out infinite" }} />
+                  <span style={{ color:`rgba(56,189,248,${pendingPass||newAnswers?0.9:0.6})`, fontSize:7, letterSpacing:1, fontFamily:"Georgia,serif", whiteSpace:"nowrap" }}>
+                    {pendingPass ? "ANSWER ✦" : newAnswers ? "ANSWERS ✦" : "RELEASE ✦"}
+                  </span>
+                </button>
+                <div style={{ width:1, height:28, background:"rgba(255,255,255,0.06)" }} />
+              </>
+            ) : null}
+
+            <button onClick={() => setShowQuote(true)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, background:"none", border:"none", cursor:"pointer", padding:"2px 8px" }}>
+              <span style={{ color:"rgba(255,255,255,0.45)", fontSize:20, fontFamily:"Georgia,serif", lineHeight:1 }}>"</span>
+              <span style={{ color:"rgba(255,255,255,0.25)", fontSize:7, letterSpacing:1, fontFamily:"Georgia,serif" }}>QUOTE</span>
+            </button>
+
+            <button onClick={() => setShowStreak(true)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, background:"none", border:"none", cursor:"pointer", padding:"2px 8px" }}>
+              <span style={{ fontSize:17 }}>🔥</span>
+              <span style={{ color:"rgba(255,255,255,0.25)", fontSize:7, letterSpacing:1, fontFamily:"Georgia,serif" }}>STREAK</span>
+            </button>
+
+            <button onClick={() => setShowFeedback(true)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, background:"none", border:"none", cursor:"pointer", padding:"2px 8px" }}>
+              <span style={{ color:"rgba(245,166,35,0.65)", fontSize:15 }}>✦</span>
+              <span style={{ color:"rgba(245,166,35,0.4)", fontSize:7, letterSpacing:1, fontFamily:"Georgia,serif" }}>FEEDBACK</span>
+            </button>
+
+            <button onClick={handleLogout} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, background:"none", border:"none", cursor:"pointer", padding:"2px 8px" }}>
+              <span style={{ color:"rgba(255,255,255,0.3)", fontSize:15 }}>↗</span>
+              <span style={{ color:"rgba(255,255,255,0.2)", fontSize:7, letterSpacing:1, fontFamily:"Georgia,serif" }}>EXIT</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -1216,19 +2126,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Quote of the day — bottom center */}
-      {!hasOverlay && (
-        <div style={{
-          position: "absolute", bottom: mobile ? 50 : 24, left: "50%", transform: "translateX(-50%)",
-          zIndex: 10, maxWidth: mobile ? "80%" : 480, textAlign: "center",
-        }}>
-          <div style={{ width: 30, height: 1, margin: "0 auto 12px", background: "linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent)" }} />
-          <p style={{
-            color: "rgba(255,255,255,0.4)", fontSize: mobile ? 11 : 13,
-            fontStyle: "italic", lineHeight: 1.8, letterSpacing: 0.5,
-          }}>{getDailyQuote()}</p>
-        </div>
-      )}
+
 
       {/* ═══════════════════════════════════════ */}
       {/* COMET — Philosophical question popup     */}
@@ -1433,6 +2331,7 @@ export default function App() {
               boxShadow: `0 0 50px ${selectedPlanet.color}33, 0 0 100px ${selectedPlanet.color}15`,
               animation: "planetPulse 5s ease-in-out infinite",
               position: "relative", zIndex: 2,
+              willChange: "transform", transform: "translateZ(0)",
             }} />
 
             {pastEntries.slice(0, moonCounts[selectedPlanet.id] || 0).map((entry, i) => {
@@ -1508,6 +2407,19 @@ export default function App() {
                     letterSpacing: mobile ? 4 : 8, fontWeight: 300,
                   }}>{selectedPlanet.name}</h1>
                 </div>
+                {selectedPlanet.whisper && (
+                  <p style={{
+                    color: selectedPlanet.color,
+                    fontSize: mobile ? 13 : 15,
+                    fontStyle: "italic",
+                    fontFamily: "Georgia, serif",
+                    letterSpacing: 0.5,
+                    opacity: 0.45,
+                    marginLeft: 20,
+                    marginBottom: 8,
+                    fontWeight: 300,
+                  }}>{selectedPlanet.whisper}</p>
+                )}
                 <p style={{
                   color: "rgba(255,255,255,0.25)", fontSize: mobile ? 11 : 12,
                   letterSpacing: 3, marginBottom: mobile ? 24 : 36, marginLeft: 20,
@@ -1541,19 +2453,27 @@ export default function App() {
                   <button onClick={() => {
                     if (!ageGroup) { setShowAgePrompt(true); return; }
                     if (selectedPlanet.id === "moksha") { setCurrentPrompt(""); setJournalOpen(true); return; }
-                    const prompts = getQuestionsForPlanet(selectedPlanet.id, ageGroup);
-                    const lastIdx = promptHistoryRef.current[selectedPlanet.id] ?? -1;
-                    let newIdx;
-                    do { newIdx = Math.floor(Math.random() * prompts.length); } while (newIdx === lastIdx && prompts.length > 1);
-                    promptHistoryRef.current[selectedPlanet.id] = newIdx;
-                    setCurrentPrompt(prompts[newIdx]);
+                    // Use AI-generated prompt if available, otherwise static
+                    if (aiPrompt) {
+                      setCurrentPrompt(aiPrompt);
+                    } else {
+                      const prompts = getQuestionsForPlanet(selectedPlanet.id, ageGroup);
+                      const lastIdx = promptHistoryRef.current[selectedPlanet.id] ?? -1;
+                      let newIdx;
+                      do { newIdx = Math.floor(Math.random() * prompts.length); } while (newIdx === lastIdx && prompts.length > 1);
+                      promptHistoryRef.current[selectedPlanet.id] = newIdx;
+                      setCurrentPrompt(prompts[newIdx]);
+                    }
                     setJournalOpen(true);
                   }} style={{
                     padding: mobile ? "14px 24px" : "16px 28px", border: "none", borderRadius: 12,
                     background: `linear-gradient(135deg, ${selectedPlanet.color}, ${selectedPlanet.color}bb)`,
                     color: "#000", fontSize: mobile ? 13 : 14, fontWeight: 600, cursor: "pointer",
                     letterSpacing: 1.5, boxShadow: `0 4px 20px ${selectedPlanet.color}22`,
-                  }}>✦ Start Journaling</button>
+                    opacity: aiPromptLoading ? 0.85 : 1, transition: "opacity 0.3s",
+                  }}>
+                    {aiPromptLoading ? "✦ Preparing your question..." : "✦ Start Journaling"}
+                  </button>
 
                   {selectedPlanet.id === "dharma" && (
                     <button onClick={loadDharmaTodos} style={{
@@ -1917,16 +2837,41 @@ export default function App() {
             {/* Prompt — Moksha has none, others show rotating question */}
             {selectedPlanet.id === "moksha" ? (
               <p style={{
-                color: "rgba(200,195,180,0.45)", fontSize: mobile ? 12 : 15,
-                fontStyle: "italic", marginBottom: mobile ? 24 : 36,
-                lineHeight: 1.9, textAlign: "center", maxWidth: 560,
-              }}>Moksha asks nothing of you. Write freely — to yourself, to the universe, or to who you will become.</p>
+                color: "rgba(200,195,180,0.4)", fontSize: mobile ? 13 : 16,
+                fontStyle: "italic", marginBottom: mobile ? 28 : 44,
+                lineHeight: 2.2, textAlign: "center", maxWidth: 560,
+                letterSpacing: 0.5, animation: "fadeIn 1.2s ease",
+              }}>Moksha asks nothing of you.<br/>Write freely — to yourself, to the universe, or to who you will become.</p>
             ) : (
-              <p style={{
-                color: "rgba(160,158,150,0.5)", fontSize: mobile ? 12 : 15,
-                fontStyle: "italic", marginBottom: mobile ? 24 : 36,
-                lineHeight: 1.9, textAlign: "center", maxWidth: 560,
-              }}>"{currentPrompt}"</p>
+              <div style={{ marginBottom: mobile ? 28 : 44, textAlign: "center", maxWidth: 580 }}>
+                <p style={{
+                  color: "rgba(200,196,188,0.55)", fontSize: mobile ? 14 : 17,
+                  fontStyle: "italic", lineHeight: 2.2, letterSpacing: 0.3,
+                  animation: "fadeIn 1.2s ease",
+                  textShadow: "0 1px 8px rgba(0,0,0,0.4)",
+                  marginBottom: 12,
+                }}>"{currentPrompt}"</p>
+                {/* Regenerate — only available if not already typing */}
+                {!journalText.trim() && (
+                  <button onClick={() => {
+                    regenerateAIPrompt();
+                    // Also refresh from static as fallback
+                    if (!aiPromptLoading) {
+                      const prompts = getQuestionsForPlanet(selectedPlanet.id, ageGroup);
+                      const lastIdx = promptHistoryRef.current[selectedPlanet.id] ?? -1;
+                      let newIdx;
+                      do { newIdx = Math.floor(Math.random() * prompts.length); } while (newIdx === lastIdx && prompts.length > 1);
+                      promptHistoryRef.current[selectedPlanet.id] = newIdx;
+                      setCurrentPrompt(aiPrompt || prompts[newIdx]);
+                    }
+                  }} style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    color: "rgba(180,175,165,0.25)", fontSize: 10,
+                    letterSpacing: 2, fontFamily: "Georgia,serif",
+                    transition: "color 0.2s",
+                  }}>↻ different question</button>
+                )}
+              </div>
             )}
 
             {/* Divider — crack in surface */}
@@ -1941,18 +2886,31 @@ export default function App() {
               onChange={(e) => setJournalText(e.target.value)}
               placeholder={selectedPlanet.id === "moksha" ? "Write to your future self..." : "Write what your soul needs to say..."}
               style={{
-                width: "100%", height: mobile ? "300px" : "420px",
-                padding: mobile ? "24px" : "36px",
-                background: "rgba(0,0,0,0.25)",
-                border: "1px solid rgba(150,148,140,0.12)",
-                borderRadius: 22,
-                color: "rgba(220,218,210,0.92)",
-                fontSize: mobile ? 16 : 19, lineHeight: 2.2,
+                width: "100%", height: mobile ? "320px" : "440px",
+                padding: mobile ? "28px 24px" : "40px 40px",
+                background: "rgba(0,0,0,0.2)",
+                border: "1px solid rgba(150,148,140,0.1)",
+                borderRadius: 24,
+                color: "rgba(230,226,218,0.92)",
+                fontSize: mobile ? 17 : 20, lineHeight: 2.4,
                 resize: "none", outline: "none", fontFamily: "Georgia, serif",
-                boxSizing: "border-box", letterSpacing: 0.4,
-                boxShadow: "inset 0 4px 16px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(140,140,135,0.06)",
+                boxSizing: "border-box", letterSpacing: 0.5,
+                boxShadow: "inset 0 2px 20px rgba(0,0,0,0.2)",
+                transition: "border-color 0.3s ease",
+                WebkitOverflowScrolling: "touch",
               }}
             />
+
+            {/* Word count */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, marginBottom: -8 }}>
+              <span style={{
+                color: journalText.trim().split(/\s+/).filter(Boolean).length > 0 ? "rgba(200,196,188,0.28)" : "transparent",
+                fontSize: 10, fontFamily: "Georgia, serif", letterSpacing: 1,
+                transition: "color 0.3s",
+              }}>
+                {journalText.trim().split(/\s+/).filter(Boolean).length} words
+              </span>
+            </div>
 
             {/* Moon progress */}
             <div style={{ display: "flex", gap: mobile ? 8 : 10, marginTop: 24, marginBottom: 8 }}>
@@ -2113,6 +3071,199 @@ export default function App() {
       )}
 
       {/* ═══════════════════════════════════════ */}
+      {/* COMET ARRIVAL — edge notification        */}
+      {/* ═══════════════════════════════════════ */}
+      {cometArriving && !hasOverlay && (
+        <div style={{
+          position: "fixed",
+          top: "50%",
+          [cometArriving === "left" ? "left" : "right"]: 0,
+          transform: cometArriving === "left"
+            ? "translateY(-50%) translateX(0)"
+            : "translateY(-50%) translateX(0)",
+          zIndex: 50,
+          pointerEvents: "none",
+          animation: "cometArrivalIn 0.6s cubic-bezier(0.16,1,0.3,1)",
+        }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "12px 20px",
+            background: "rgba(4,2,14,0.85)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid rgba(135,206,250,0.2)",
+            borderRadius: cometArriving === "left" ? "0 20px 20px 0" : "20px 0 0 20px",
+            boxShadow: "0 0 30px rgba(135,206,250,0.08)",
+          }}>
+            {cometArriving === "left" && (
+              <span style={{ color: "rgba(135,206,250,0.7)", fontSize: 14 }}>☄</span>
+            )}
+            <div>
+              <p style={{
+                color: "rgba(135,206,250,0.85)", fontSize: mobile ? 10 : 11,
+                letterSpacing: 3, fontFamily: "Georgia,serif",
+                whiteSpace: "nowrap",
+              }}>SOMETHING IS COMING</p>
+              <p style={{
+                color: "rgba(255,255,255,0.25)", fontSize: mobile ? 9 : 10,
+                letterSpacing: 2, fontFamily: "Georgia,serif",
+                marginTop: 2,
+              }}>
+                {cometArriving === "left" ? "from the left →" : "← from the right"}
+              </p>
+            </div>
+            {cometArriving === "right" && (
+              <span style={{ color: "rgba(135,206,250,0.7)", fontSize: 14 }}>☄</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════ */}
+      {/* REHESYA — Wandering planet panel         */}
+      {/* ═══════════════════════════════════════ */}
+      {showRehesyaAnswers && (
+        <RehesyaAnswers user={user} answers={myAnswers} mobile={mobile} onClose={() => setShowRehesyaAnswers(false)} />
+      )}
+      {showRehesyaPanel && pendingPass && (
+        <RehesyaPanel user={user} rehesyaPass={pendingPass} mobile={mobile}
+          onAnswered={() => { setShowRehesyaPanel(false); refreshRehesya(); showToast("Your answer travels into the unknown.", "success"); }}
+          onSkipped={() => { setShowRehesyaPanel(false); refreshRehesya(); }}
+        />
+      )}
+      {showRehesyaRelease && (
+        <RehesyaRelease user={user} mobile={mobile}
+          onClose={() => setShowRehesyaRelease(false)}
+          onReleased={() => { refreshRehesya(); }}
+        />
+      )}
+      {/* Rehesya bottom button — only shows in answer or answered state, hidden when traveling or idle */}
+      {!hasOverlay && !showRehesyaPanel && (rehesyaState === "answer" || rehesyaState === "answered" || rehesyaState === "idle") && (
+        <div
+          onClick={() => {
+            if (rehesyaState === "answered") setShowRehesyaAnswers(true);
+            else if (rehesyaState === "answer") setShowRehesyaPanel(true);
+            else setShowRehesyaRelease(true);
+          }}
+          style={{
+            position: "fixed",
+            bottom: mobile ? 72 : 36,
+            left: "50%", transform: "translateX(-50%)",
+            zIndex: 50, cursor: "pointer",
+            animation: "rehesyaPulse 2.5s ease-in-out infinite",
+            display: "flex", alignItems: "center", gap: 8,
+            padding: mobile ? "8px 18px" : "11px 24px",
+            background: "rgba(4,2,14,0.92)",
+            backdropFilter: "blur(16px)",
+            border: `1px solid rgba(${rehesyaState === "answered" ? "255,215,0" : "56,189,248"},${rehesyaState === "answered" ? "0.5" : rehesyaState === "answer" ? "0.35" : "0.15"})`,
+            borderRadius: 40,
+            boxShadow: `0 0 ${rehesyaState === "answered" ? "60px rgba(255,215,0,0.25)" : rehesyaState === "answer" ? "40px rgba(56,189,248,0.18)" : "20px rgba(56,189,248,0.08)"}`,
+            transition: "all 0.6s ease",
+          }}
+        >
+          <div style={{
+            width: mobile ? 7 : 9, height: mobile ? 7 : 9, borderRadius: "50%",
+            background: rehesyaState === "answered" ? "#ffd700" : "#38bdf8",
+            boxShadow: `0 0 ${rehesyaState === "answered" ? "10px rgba(255,215,0,0.9)" : "8px rgba(56,189,248,0.8)"}`,
+            animation: "rehesyaPulse 1.5s ease-in-out infinite",
+          }} />
+          <span style={{
+            color: rehesyaState === "answered" ? "#ffd700" : rehesyaState === "answer" ? "#38bdf8" : "rgba(56,189,248,0.5)",
+            fontSize: mobile ? 9 : 11, letterSpacing: mobile ? 2 : 3,
+            fontFamily: "Georgia,serif", whiteSpace: "nowrap",
+          }}>
+            {rehesyaState === "answered"
+              ? "✦ UNIVERSE HAS ANSWERED"
+              : rehesyaState === "answer"
+              ? "ANSWER THE UNIVERSE"
+              : "✦ RELEASE A QUESTION"}
+          </span>
+        </div>
+      )}
+
+      {/* Quote of the Day Modal */}
+      {showQuote && (
+        <div onClick={() => setShowQuote(false)} style={{
+          position:"fixed", inset:0, zIndex:200,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          background:"rgba(0,0,0,0.75)", backdropFilter:"blur(20px)",
+          animation:"overlayIn 0.4s cubic-bezier(0.16,1,0.3,1)",
+        }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            maxWidth: mobile?"88vw":500,
+            background:"rgba(5,3,15,0.98)",
+            border:"1px solid rgba(245,166,35,0.14)",
+            borderRadius:28,
+            padding: mobile?"44px 28px 36px":"64px 56px 52px",
+            textAlign:"center", position:"relative",
+            boxShadow:"0 0 100px rgba(245,166,35,0.07), 0 40px 80px rgba(0,0,0,0.8)",
+          }}>
+            <button onClick={()=>setShowQuote(false)} style={{ position:"absolute",top:18,right:22,background:"none",border:"none",color:"rgba(255,255,255,0.18)",fontSize:16,cursor:"pointer" }}>✕</button>
+            <div style={{ fontSize:mobile?80:100,lineHeight:0.9,color:"rgba(245,166,35,0.08)",fontFamily:"Georgia,serif",marginBottom:-10,userSelect:"none" }}>"</div>
+            <p style={{
+              color:"rgba(255,255,255,0.85)", fontSize:mobile?16:20,
+              fontStyle:"italic", fontFamily:"Georgia,serif",
+              lineHeight:1.9, letterSpacing:0.4, fontWeight:300, marginBottom:32,
+            }}>{getDailyQuote()}</p>
+            <div style={{ width:36,height:1,background:"rgba(245,166,35,0.25)",margin:"0 auto 18px" }} />
+            <p style={{ color:"rgba(255,255,255,0.15)",fontSize:9,letterSpacing:6,fontFamily:"Georgia,serif",textTransform:"uppercase" }}>today's reflection</p>
+          </div>
+        </div>
+      )}
+
+      {showQuote && (
+        <div onClick={() => setShowQuote(false)} style={{ position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.75)",backdropFilter:"blur(20px)",animation:"overlayIn 0.4s cubic-bezier(0.16,1,0.3,1)" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ maxWidth:mobile?"88vw":500,background:"rgba(5,3,15,0.98)",border:"1px solid rgba(245,166,35,0.14)",borderRadius:28,padding:mobile?"44px 28px 36px":"64px 56px 52px",textAlign:"center",position:"relative",boxShadow:"0 0 100px rgba(245,166,35,0.07),0 40px 80px rgba(0,0,0,0.8)" }}>
+            <button onClick={()=>setShowQuote(false)} style={{ position:"absolute",top:18,right:22,background:"none",border:"none",color:"rgba(255,255,255,0.18)",fontSize:16,cursor:"pointer" }}>✕</button>
+            <div style={{ fontSize:mobile?80:100,lineHeight:0.9,color:"rgba(245,166,35,0.08)",fontFamily:"Georgia,serif",marginBottom:-10,userSelect:"none" }}>"</div>
+            <p style={{ color:"rgba(255,255,255,0.85)",fontSize:mobile?16:20,fontStyle:"italic",fontFamily:"Georgia,serif",lineHeight:1.9,letterSpacing:0.4,fontWeight:300,marginBottom:32 }}>{getDailyQuote()}</p>
+            <div style={{ width:36,height:1,background:"rgba(245,166,35,0.25)",margin:"0 auto 18px" }} />
+            <p style={{ color:"rgba(255,255,255,0.15)",fontSize:9,letterSpacing:6,fontFamily:"Georgia,serif",textTransform:"uppercase" }}>today's reflection</p>
+          </div>
+        </div>
+      )}
+
+      {/* How It Works Modal */}
+      {showHowItWorks && (
+        <HowItWorks mobile={mobile} onClose={() => { localStorage.setItem("shunya_hiw_seen","1"); setShowHowItWorks(false); }} onJournal={() => { localStorage.setItem("shunya_hiw_seen","1"); setShowHowItWorks(false); setShowQuickJournal(true); }} />
+      )}
+
+      {/* Quick Journal Modal */}
+      {showQuickJournal && (
+        <QuickJournal
+          user={user}
+          unlockedPlanets={unlockedPlanets}
+          moonCounts={moonCounts}
+          mobile={mobile}
+          onDone={(planetId, isNew, planet) => {
+            setShowQuickJournal(false);
+            if (planetId) {
+              setMoonCounts(prev => ({ ...prev, [planetId]: Math.min((prev[planetId]||0)+1, 9) }));
+              if (isNew && planet) {
+                setUnlockedPlanets(prev => prev.includes(planetId) ? prev : [...prev, planetId]);
+                triggerRoulette(planetId);
+                setTimeout(() => setShowUnlockModal(planet), 4800);
+              }
+            }
+          }}
+        />
+      )}
+
+      {/* Planet Unlock Modal */}
+      {showUnlockModal && (
+        <UnlockModal planet={showUnlockModal} mobile={mobile} onClose={() => setShowUnlockModal(null)} />
+      )}
+
+      {/* Feedback Form */}
+      {showFeedback && (
+        <FeedbackForm user={user} mobile={mobile} onClose={() => setShowFeedback(false)} />
+      )}
+
+      {/* Streak Tracker */}
+      {showStreak && (
+        <StreakTracker user={user} mobile={mobile} onClose={() => setShowStreak(false)} />
+      )}
+
+      {/* ═══════════════════════════════════════ */}
       {/* TOAST NOTIFICATION                        */}
       {/* ═══════════════════════════════════════ */}
       {toast && (
@@ -2156,8 +3307,43 @@ export default function App() {
           50% { transform: scale(1.03); }
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes cometArrivalIn {
+          from { opacity: 0; transform: translateY(-50%) translateX(var(--slide-dir, -20px)); }
+          to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+        }
+        @keyframes rehesyaPulse {
+          0%, 100% { opacity: 0.7; }
+          50% { opacity: 1; }
+        }
+        @keyframes rehesyaFadeOut {
+          0% { opacity: 1; transform: scale(1); filter: blur(0px); }
+          40% { opacity: 0.7; transform: scale(1.08); filter: blur(2px); }
+          100% { opacity: 0; transform: scale(0.5); filter: blur(20px); }
+        }
+        @keyframes rehesyaArrive {
+          from { opacity: 0; filter: blur(10px); }
+          to { opacity: 1; filter: blur(0px); }
+        }
+        @keyframes rehesyaDepart {
+          0% { opacity: 1; filter: blur(0px); }
+          60% { opacity: 0.5; filter: blur(4px); }
+          100% { opacity: 0; filter: blur(18px); }
+        }
+          0%, 100% { opacity: 0.7; box-shadow: 0 0 30px rgba(56,189,248,0.12); }
+          50% { opacity: 1; box-shadow: 0 0 55px rgba(56,189,248,0.35); }
+        }
+        @keyframes journalPulse {
+          0%, 100% { box-shadow: 0 0 10px rgba(245,166,35,0.2), 0 0 0 0 rgba(245,166,35,0); border-color: rgba(245,166,35,0.4); }
+          50% { box-shadow: 0 0 22px rgba(245,166,35,0.5), 0 0 12px 2px rgba(245,166,35,0.12); border-color: rgba(245,166,35,0.75); }
+        }
+        @keyframes logoGlow {
+          from { text-shadow: 0 0 30px rgba(245,166,35,0.4), 0 0 60px rgba(245,166,35,0.15); }
+          to   { text-shadow: 0 0 55px rgba(245,166,35,0.75), 0 0 100px rgba(245,166,35,0.28); }
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        canvas { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
         html, body { margin: 0; overflow: hidden; touch-action: none; -webkit-overflow-scrolling: touch; font-family: 'Cormorant Garamond', Georgia, serif; }
+        canvas { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
         textarea::placeholder { color: rgba(255,255,255,0.2); }
         input::placeholder { color: rgba(255,255,255,0.2); }
         ::-webkit-scrollbar { width: 3px; }
