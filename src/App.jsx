@@ -695,15 +695,9 @@ export default function App() {
   const rehesyaBlinkRef = useRef(false);
 
   useEffect(() => {
-    // State machine visibility:
-    // "idle"      → no planet, no button
-    // "traveling" → no planet, no button (question is out there)
-    // "answer"    → planet appears, button: "Answer the Universe"
-    // "answered"  → planet appears (gold glow), button: "Universe has answered"
     const shouldShow = rehesyaState === "answer" || rehesyaState === "answered";
     rehesyaVisibleRef.current = shouldShow;
-    rehesyaBlinkRef.current = rehesyaState === "answered"; // gold blink when answers arrived
-    setRehesyaVisible(shouldShow);
+    rehesyaBlinkRef.current = rehesyaState === "answered";
   }, [rehesyaState]);
 
   // Trigger roulette spin — called when new planet unlocked
