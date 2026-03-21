@@ -209,7 +209,7 @@ export default function AuthPage({ onAuth, onSignupStart }) {
     if (profileError) { setError(profileError.message); setLoading(false); return; }
     const planets = ["aatma", "seesha", "kaal", "dharma", "moksha", "karma", "prema", "maya"];
     await supabase.from("moon_progress").insert(planets.map((p) => ({ user_id: authData.user.id, planet_id: p, moon_count: 0 })));
-    setAuthUser(authData.user); setRevealName(anonymousName);
+    setAuthUser(authData.user); setRevealName(anonymousName); setLoading(false);
     setTimeout(() => setShowOnboarding(true), 3500);
   };
 

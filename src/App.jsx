@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "./supabaseClient";
 import AuthPage from "./AuthPage";
 import FeedbackForm from "./FeedbackForm";
 import StreakTracker from "./StreakTracker";
 import { RehesyaPanel, RehesyaRelease, RehesyaAnswers, useRehesya, useRehesyaActive, useRehesyaState } from "./Rehesya";
+import SolarSystem3D from "./SolarSystem3D";
 
 const PLANETS = [
   { id: "aatma",
@@ -641,7 +642,6 @@ function QuickJournal({ user, unlockedPlanets, moonCounts, onDone, mobile }) {
 }
 
 export default function App() {
-  const canvasRef = useRef(null);
   const [user, setUser] = useState(null);
   const [anonymousName, setAnonymousName] = useState("");
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -700,14 +700,8 @@ export default function App() {
     rehesyaBlinkRef.current = rehesyaState === "answered";
   }, [rehesyaState]);
 
-  // Trigger roulette spin — called when new planet unlocked
-  const triggerRoulette = (planetId) => {
-    const r = rouletteRef.current;
-    r.spinning = true;
-    r.targetPlanetId = planetId;
-    r.phase = "charge";
-    r.elapsed = 0;
-  };
+  // Trigger roulette spin — called when new planet unlocked (visual in 3D Phase 2)
+  const triggerRoulette = (planetId) => {};
 
   // ─── AI prompt (stubbed — static prompts used instead) ───
   const aiPrompt = null;
@@ -720,21 +714,11 @@ export default function App() {
     setTimeout(() => setToast(null), 4000);
   };
   const [mobile, setMobile] = useState(window.innerWidth < 768);
-  const getScale = () => { const w = window.innerWidth; return w < 768 ? w / 820 : Math.min(w, window.innerHeight) / 900; };
-  const scaleRef = useRef(getScale());
-  const animFrameRef = useRef(null);
-  const shootingStarsRef = useRef([]);
-  const mergingMoons = useRef([]);
-  const cometsRef = useRef([]);
-  const mouseRef = useRef({ x: 0, y: 0 });
-  const timeRef = useRef(0);
   const rehesyaVisibleRef = useRef(false);
-  const rehesyaPosRef = useRef(null);
-  const rouletteRef = useRef({ spinning: false, targetPlanetId: null, phase: "idle", elapsed: 0 }); // idle | charge | transfer
   const unlockedPlanetsRef = useRef(["aatma","seesha","kaal","dharma","moksha","karma","prema","maya"]);
 
   useEffect(() => {
-    const h = () => { setMobile(window.innerWidth < 768); scaleRef.current = getScale(); };
+    const h = () => { setMobile(window.innerWidth < 768); };
     window.addEventListener("resize", h); return () => window.removeEventListener("resize", h);
   }, []);
 
@@ -831,37 +815,11 @@ export default function App() {
         }
       }
     if (next >= 10) {
-      // Spawn merge animation — moons fly toward the sun
-      const w = window.innerWidth; const h = window.innerHeight;
-      const sunCx = w < 768 ? w / 2 : w * 0.55;
-      const sunCy = h / 2;
-      const scale = scaleRef.current;
-      const eR = w < 768 ? 0.85 : 0.4;
-      const t = timeRef.current;
-      const pAngle = t * selectedPlanet.speed;
-      const pOrbit = selectedPlanet.baseOrbit * scale;
-      const planetX = sunCx + Math.cos(pAngle) * pOrbit;
-      const planetY = sunCy + Math.sin(pAngle) * pOrbit * eR;
-      const pSize = Math.max(selectedPlanet.baseSize * scale, 10);
-
-      // Create 10 moon particles at different positions around the planet
-      for (let i = 0; i < 10; i++) {
-        const moonAngle = (i * Math.PI * 2) / 10;
-        const moonDist = pSize + 10 + i * 3;
-        mergingMoons.current.push({
-          startX: planetX + Math.cos(moonAngle) * moonDist,
-          startY: planetY + Math.sin(moonAngle) * moonDist * 0.6,
-          progress: -i * 0.06, // stagger the start so they don't all fly at once
-        });
-      }
-
+      // Moon merge — 10 moons feed the sun (visual animation in 3D Phase 2)
       const mult = (sunSize / SUN_BASE_SIZE) + 0.1;
       const { data: pd } = await supabase.from("profiles").select("total_merges").eq("id", user.id).single();
       await supabase.from("profiles").update({ sun_size: mult, total_merges: (pd?.total_merges || 0) + 1 }).eq("id", user.id);
-      // Delay the sun growth so it happens AFTER moons arrive
-      setTimeout(() => {
-        setSunSize(SUN_BASE_SIZE * mult);
-      }, 1200);
+      setTimeout(() => { setSunSize(SUN_BASE_SIZE * mult); }, 1200);
       setMoonCounts((p) => ({ ...p, [selectedPlanet.id]: 0 }));
     } else { setMoonCounts((p) => ({ ...p, [selectedPlanet.id]: next })); }
     setJournalText(""); setSaving(false);
@@ -890,18 +848,6 @@ export default function App() {
     const cur = moonCounts["moksha"] || 0; const next = cur + 1;
     await supabase.from("moon_progress").update({ moon_count: next >= 10 ? 0 : next }).eq("user_id", user.id).eq("planet_id", "moksha");
     if (next >= 10) {
-      const w = window.innerWidth; const h = window.innerHeight;
-      const sunCx = w < 768 ? w * 0.78 : w * 0.55; const sunCy = w < 768 ? h / 2 - 20 : h / 2;
-      const scale = scaleRef.current; const eR = w < 768 ? 0.75 : 0.4;
-      const mokshaPlanet = PLANETS.find(p => p.id === "moksha");
-      const t = timeRef.current;
-      const pAngle = t * mokshaPlanet.speed; const pOrbit = mokshaPlanet.baseOrbit * scale;
-      const planetX = sunCx + Math.cos(pAngle) * pOrbit; const planetY = sunCy + Math.sin(pAngle) * pOrbit * eR;
-      const pSize = Math.max(mokshaPlanet.baseSize * scale, 10);
-      for (let i = 0; i < 10; i++) {
-        const moonAngle = (i * Math.PI * 2) / 10; const moonDist = pSize + 10 + i * 3;
-        mergingMoons.current.push({ startX: planetX + Math.cos(moonAngle) * moonDist, startY: planetY + Math.sin(moonAngle) * moonDist * 0.6, progress: -i * 0.06 });
-      }
       const mult = (sunSize / SUN_BASE_SIZE) + 0.1;
       const { data: pd } = await supabase.from("profiles").select("total_merges").eq("id", user.id).single();
       await supabase.from("profiles").update({ sun_size: mult, total_merges: (pd?.total_merges || 0) + 1 }).eq("id", user.id);
@@ -976,866 +922,43 @@ export default function App() {
     } catch (err) { console.error("Delete failed:", err); showToast("Could not delete commitment."); }
   };
 
-  // ─── Canvas Animation ───
-  useEffect(() => {
-    if (!user) return;
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // ─── 3D Solar System Click Handlers ───
+  const handle3DPlanetClick = useCallback((planetData) => {
+    if (!unlockedPlanets.includes(planetData.id)) {
+      showToast('Journal more to unlock this planet ✦', 'info');
+      return;
+    }
+    setSelectedPlanet(planetData);
+    setJournalOpen(false);
+    setShowPastEntries(false);
+    setSelectedMoonEntry(null);
+    supabase.from('journal_entries').select('*').eq('user_id', user.id).eq('planet_id', planetData.id).order('created_at', { ascending: false }).then(({ data }) => {
+      setPastEntries(data || []);
+    });
+  }, [user, unlockedPlanets]);
 
-    const resize = () => {
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      canvas.style.width = window.innerWidth + "px";
-      canvas.style.height = window.innerHeight + "px";
-      ctx.scale(dpr, dpr);
-      scaleRef.current = getScale();
-    };
-    resize(); window.addEventListener("resize", resize);
-
-    // Cursor trail particles
-    const cursorTrail = [];
-
-    const bgStars = Array.from({ length: 200 }, () => ({
-      x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
-      r: Math.random() * 1.5 + 0.5, twinkle: Math.random() * Math.PI * 2, speed: Math.random() * 0.02 + 0.01,
-    }));
-
-    const spawnShootingStar = () => {
-      shootingStarsRef.current.push({ x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight * 0.5,
-        vx: (Math.random() - 0.3) * 6, vy: Math.random() * 3 + 2, life: 1, size: Math.random() * 2 + 1, caught: false, slowing: false });
-    };
-    const shootingInterval = setInterval(spawnShootingStar, 3000);
-
-    // Comet spawning — random comet every 30-60 seconds
-    const spawnComet = () => {
-      if (cometsRef.current.length >= 1) return; // max 1 comet at a time
-      const comet = COMETS[Math.floor(Math.random() * COMETS.length)];
-      const fromLeft = Math.random() > 0.5;
-      const w = window.innerWidth; const h = window.innerHeight;
-      cometsRef.current.push({
-        ...comet,
-        x: fromLeft ? -50 : w + 50,
-        y: Math.random() * h * 0.6 + h * 0.1,
-        vx: fromLeft ? (1 + Math.random() * 0.8) : -(1 + Math.random() * 0.8),
-        vy: (Math.random() - 0.5) * 0.5,
-        size: 5 + Math.random() * 3,
-        life: 1,
-        tailParticles: [],
-      });
-      // Show arrival message from the correct side
-      setCometArriving(fromLeft ? "left" : "right");
-      setTimeout(() => setCometArriving(null), 3500);
-    };
-    const cometInterval = setInterval(spawnComet, 30000 + Math.random() * 30000);
-    // Spawn first comet after 10 seconds
-    setTimeout(spawnComet, 10000);
-
-    // Smooth cursor position (the actual cursor lerps toward this)
-    const cursorTarget = { x: 0, y: 0 };
-    const cursorSmooth = { x: 0, y: 0 };
-    let lastFrameTime = performance.now();
-
-    const handleMouse = (e) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
-      cursorTarget.x = e.clientX;
-      cursorTarget.y = e.clientY;
-    };
-    const handleTouchMove = (e) => {
-      if (e.touches.length > 0) {
-        mouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        cursorTarget.x = e.touches[0].clientX;
-        cursorTarget.y = e.touches[0].clientY;
+  const handle3DSunClick = useCallback(() => {
+    supabase.from('journal_entries').select('planet_id').eq('user_id', user.id).then(({ data }) => {
+      if (data) {
+        const counts = {};
+        data.forEach((e) => { counts[e.planet_id] = (counts[e.planet_id] || 0) + 1; });
+        const total = data.length;
+        const planetData = PLANETS.map((p) => ({
+          id: p.id, name: p.name, color: p.color, meaning: p.meaning,
+          count: counts[p.id] || 0,
+          percent: total > 0 ? Math.round(((counts[p.id] || 0) / total) * 100) : 0,
+        })).filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
+        setSunCoreData({ planetData, total, merges: Math.floor(total / 10) });
+        setShowSunCore(true);
       }
-    };
-    window.addEventListener("mousemove", handleMouse);
-    window.addEventListener("touchmove", handleTouchMove, { passive: true });
-
-    const handleInteraction = (mx, my) => {
-      const w = window.innerWidth; const h = window.innerHeight;
-      const cx = w < 768 ? w * 0.78 : w * 0.55; const cy = w < 768 ? h / 2 - 20 : h / 2; const scale = scaleRef.current;
-      const eR = w < 768 ? 0.85 : 0.4;
-      shootingStarsRef.current.forEach((star) => { const d = Math.hypot(star.x - mx, star.y - my); if (d < 50) { star.caught = true; collectStar(); } });
-      // Check Rehesya click — wandering planet
-      if (rehesyaPosRef.current) {
-        const rd = Math.hypot(rehesyaPosRef.current.x - mx, rehesyaPosRef.current.y - my);
-        if (rd < rehesyaPosRef.current.r) {
-          if (pendingPass) setShowRehesyaPanel(true);
-          else if (newAnswers && !hasActiveQuestion) setShowRehesyaAnswers(true);
-          else setShowRehesyaRelease(true);
-          return;
-        }
-      }
-      // Check comet clicks
-      cometsRef.current.forEach((comet) => {
-        const d = Math.hypot(comet.x - mx, comet.y - my);
-        if (d < 40) { setActiveComet({ name: comet.name, fact: comet.fact, question: comet.question, color: comet.color }); }
-      });
-      // Check sun click
-      const sunDist = Math.hypot(cx - mx, cy - my);
-      const currentSunSize = (sunSize / SUN_BASE_SIZE) * SUN_BASE_SIZE * scale;
-      if (sunDist < currentSunSize + 20) {
-        // Load all entries grouped by planet for pie chart
-        supabase.from("journal_entries").select("planet_id").eq("user_id", user.id).then(({ data }) => {
-          if (data) {
-            const counts = {};
-            data.forEach((e) => { counts[e.planet_id] = (counts[e.planet_id] || 0) + 1; });
-            const total = data.length;
-            const planetData = PLANETS.map((p) => ({
-              id: p.id, name: p.name, color: p.color, meaning: p.meaning,
-              count: counts[p.id] || 0,
-              percent: total > 0 ? Math.round(((counts[p.id] || 0) / total) * 100) : 0,
-            })).filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
-            setSunCoreData({ planetData, total, merges: Math.floor(total / 10) });
-            setShowSunCore(true);
-          }
-        });
-        return; // Don't also select a planet
-      }
-      const t = timeRef.current;
-      PLANETS.forEach((planet) => {
-        const angle = t * planet.speed; const orbit = planet.baseOrbit * scale;
-        const size = Math.max(planet.baseSize * scale, 12);
-        const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * eR;
-        const dist = Math.hypot(px - mx, py - my);
-        const hitR = w < 768 ? Math.max(size + 22, 32) : size + 15;
-        if (dist < hitR) {
-          if (!unlockedPlanetsRef.current.includes(planet.id)) {
-            showToast("Journal more to unlock this planet ✦", "info");
-            return;
-          }
-          setSelectedPlanet(planet); setJournalOpen(false); setShowPastEntries(false); setSelectedMoonEntry(null);
-          supabase.from("journal_entries").select("*").eq("user_id", user.id).eq("planet_id", planet.id).order("created_at", { ascending: false }).then(({ data }) => {
-            setPastEntries(data || []);
-          });
-        }
-      });
-    };
-
-    const handleClick = (e) => handleInteraction(e.clientX, e.clientY);
-    const handleTap = (e) => { if (e.touches.length > 0) { e.preventDefault(); handleInteraction(e.touches[0].clientX, e.touches[0].clientY); } };
-    canvas.addEventListener("click", handleClick);
-    canvas.addEventListener("touchstart", handleTap, { passive: false });
-
-    const render = (now) => {
-      const dt = Math.min(now - lastFrameTime, 33);
-      lastFrameTime = now;
-      const w = window.innerWidth; const h = window.innerHeight;
-      // Offset sun to the right on desktop so outer planets orbit through the left edge
-      const cx = w < 768 ? w / 2 : w * 0.55;
-      const cy = w < 768 ? h / 2 - 20 : h / 2;
-      const scale = scaleRef.current; const eR = w < 768 ? 0.75 : 0.4;
-      timeRef.current += dt;
-
-      // ── Roulette energy update ──
-      const rou = rouletteRef.current;
-      if (rou.spinning) {
-        rou.elapsed += dt;
-        // Phase timing: charge (1500ms) → transfer (600ms) → done
-        if (rou.phase === "charge" && rou.elapsed > 3500) {
-          rou.phase = "transfer";
-          rou.elapsed = 0;
-        } else if (rou.phase === "transfer" && rou.elapsed > 600) {
-          rou.phase = "idle";
-          rou.spinning = false;
-        }
-      }
-
-      // Smooth cursor interpolation (lerp)
-      cursorSmooth.x += (cursorTarget.x - cursorSmooth.x) * 0.35;
-      cursorSmooth.y += (cursorTarget.y - cursorSmooth.y) * 0.35;
-      const cursorEl = document.getElementById("shunya-cursor");
-      if (cursorEl) { cursorEl.style.left = cursorSmooth.x + "px"; cursorEl.style.top = cursorSmooth.y + "px"; }
-
-      // Spawn trail particles in render loop for consistent spacing
-      if (Math.abs(cursorTarget.x - (cursorTrail.length > 0 ? cursorTrail[cursorTrail.length - 1].x : 0)) > 5 ||
-          Math.abs(cursorTarget.y - (cursorTrail.length > 0 ? cursorTrail[cursorTrail.length - 1].y : 0)) > 5) {
-        cursorTrail.push({ x: cursorSmooth.x, y: cursorSmooth.y, life: 1, size: Math.random() * 5 + 3 });
-        if (cursorTrail.length > 15) cursorTrail.shift();
-      }
-
-      ctx.save();
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // ─── Deep space background ───
-      ctx.fillStyle = "#030108"; ctx.fillRect(0, 0, w, h);
-
-      // Draw cached nebula background (rendered once to offscreen canvas)
-      if (!window._shunyaNebulaCache2 || window._shunyaNebulaW !== w || window._shunyaNebulaH !== h) {
-        const offscreen = document.createElement("canvas");
-        offscreen.width = w; offscreen.height = h;
-        const oc = offscreen.getContext("2d");
-
-        const drawNeb = (nx, ny, radius, r, g, b, alpha) => {
-          const nb = oc.createRadialGradient(nx, ny, 0, nx, ny, radius);
-          nb.addColorStop(0, `rgba(${r},${g},${b},${alpha})`);
-          nb.addColorStop(0.3, `rgba(${r},${g},${b},${alpha * 0.5})`);
-          nb.addColorStop(0.6, `rgba(${r},${g},${b},${alpha * 0.15})`);
-          nb.addColorStop(1, "transparent");
-          oc.fillStyle = nb;
-          oc.fillRect(nx - radius, ny - radius, radius * 2, radius * 2);
-        };
-
-        // Layer 1: Deep base gradient — dark blue-purple wash
-        const baseGrad = oc.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.4, w * 0.8);
-        baseGrad.addColorStop(0, "rgba(15,8,40,0.6)");
-        baseGrad.addColorStop(0.5, "rgba(8,4,25,0.3)");
-        baseGrad.addColorStop(1, "transparent");
-        oc.fillStyle = baseGrad; oc.fillRect(0, 0, w, h);
-
-        // Very subtle deep-space wisps only — no visible colour blobs
-        drawNeb(w * 0.1, h * 0.15, w * 0.35, 20, 15, 50, 0.05);
-        drawNeb(w * 0.85, h * 0.8, w * 0.30, 15, 10, 40, 0.04);
-        drawNeb(w * 0.5, h * 0.9, w * 0.30, 20, 20, 55, 0.04);
-        drawNeb(w * 0.75, h * 0.12, w * 0.22, 10, 20, 50, 0.04);
-
-        // Layer 8: Fine star dust — tiny scattered bright points
-        for (let i = 0; i < 80; i++) {
-          const dx = Math.random() * w; const dy = Math.random() * h;
-          const ds = Math.random() * 1.5 + 0.3;
-          const da = Math.random() * 0.15 + 0.05;
-          const dc = Math.random() > 0.7 ? `rgba(180,160,255,${da})` : `rgba(255,255,255,${da})`;
-          oc.beginPath(); oc.arc(dx, dy, ds, 0, Math.PI * 2);
-          oc.fillStyle = dc; oc.fill();
-        }
-
-        window._shunyaNebulaCache2 = offscreen;
-        window._shunyaNebulaW = w;
-        window._shunyaNebulaH = h;
-      }
-      ctx.drawImage(window._shunyaNebulaCache2, 0, 0);
-
-      bgStars.forEach((s) => { s.twinkle += s.speed; const a = 0.3 + Math.sin(s.twinkle) * 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); });
-
-      const t_orb = timeRef.current;
-
-      // ─── ASTEROID BELT between Kaal (390) and Dharma (490) ───
-      const beltInner = 415 * scale, beltOuter = 465 * scale;
-      for (let i = 0; i < 220; i++) {
-        const s1 = Math.sin(i*127.1+42)*0.5+0.5, s2 = Math.sin(i*311.7+17)*0.5+0.5;
-        const s3 = Math.sin(i*54.3+99)*0.5+0.5, s4 = Math.sin(i*73.9+31)*0.5+0.5;
-        const angle = (i/220)*Math.PI*2 + t_orb*0.000035;
-        const r = beltInner + s1*(beltOuter-beltInner);
-        const ax = cx+Math.cos(angle)*r, ay = cy+Math.sin(angle)*r*eR;
-        const aSize = s2*1.8+0.4, aAlpha = s3*0.35+0.1;
-        ctx.beginPath(); ctx.arc(ax, ay, aSize, 0, Math.PI*2);
-        ctx.fillStyle = s4>0.75?`rgba(200,180,140,${aAlpha})`:s4>0.5?`rgba(160,150,130,${aAlpha})`:s4>0.25?`rgba(120,110,100,${aAlpha})`:`rgba(185,165,120,${aAlpha})`;
-        ctx.fill();
-        if (aSize>1.4) { ctx.beginPath(); ctx.arc(ax-aSize*0.3,ay-aSize*0.3,aSize*0.35,0,Math.PI*2); ctx.fillStyle=`rgba(255,245,220,${aAlpha*0.5})`; ctx.fill(); }
-      }
-      ctx.fillStyle="rgba(185,165,120,0.2)"; ctx.font=`${Math.max(7,8*scale)}px Georgia`; ctx.textAlign="center";
-      ctx.fillText("ASTEROID BELT", cx+Math.cos(Math.PI*1.28)*((beltInner+beltOuter)/2), cy+Math.sin(Math.PI*1.28)*((beltInner+beltOuter)/2)*eR);
-
-      PLANETS.forEach((p) => {
-        const o = p.baseOrbit * scale;
-        const planetAngle = t_orb * p.speed;
-        const rou = rouletteRef.current;
-        const isTarget = rou.spinning && rou.targetPlanetId === p.id;
-        const isCharging = isTarget && rou.phase === "charge";
-        const isTransfer = isTarget && rou.phase === "transfer";
-
-        // Charge progress 0→1 over 1500ms
-        const chargeProgress = isCharging ? Math.min(rou.elapsed / 3500, 1) : 0;
-        // Transfer progress 0→1 over 600ms
-        const transferProgress = isTransfer ? Math.min(rou.elapsed / 600, 1) : 0;
-
-        // Base orbit ring — brightens during charge
-        ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = isCharging
-          ? `rgba(255,255,255,${0.06 + chargeProgress * 0.12})`
-          : "rgba(255,255,255,0.06)";
-        ctx.lineWidth = 1; ctx.stroke();
-
-        // Full orbit colour glow during charge — entire ring lights up
-        if (isCharging && chargeProgress > 0.05) {
-          const segments = 60;
-          for (let s = 0; s < segments; s++) {
-            const sa = (s / segments) * Math.PI * 2;
-            const na = ((s + 1) / segments) * Math.PI * 2;
-            ctx.beginPath();
-            ctx.moveTo(cx + Math.cos(sa) * o, cy + Math.sin(sa) * o * eR);
-            ctx.lineTo(cx + Math.cos(na) * o, cy + Math.sin(na) * o * eR);
-            // Pulse the alpha with a wave
-            const wave = 0.5 + 0.5 * Math.sin(sa * 3 - t_orb * 0.008);
-            ctx.strokeStyle = p.color + Math.round(chargeProgress * wave * 0.7 * 255).toString(16).padStart(2, '0');
-            ctx.lineWidth = 2.5; ctx.stroke();
-          }
-          // Outer glow ring
-          ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = p.color + Math.round(chargeProgress * 0.3 * 255).toString(16).padStart(2, '0');
-          ctx.lineWidth = 5; ctx.stroke();
-        }
-
-        // Energy transfer — beam shoots from orbit ring to planet
-        if (isTransfer) {
-          const ease = 1 - Math.pow(1 - transferProgress, 3);
-          // Flash the orbit fading out
-          ctx.beginPath(); ctx.ellipse(cx, cy, o, o * eR, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = p.color + Math.round((1 - ease) * 0.8 * 255).toString(16).padStart(2, '0');
-          ctx.lineWidth = 3; ctx.stroke();
-          // Energy beam: from orbit point nearest planet to planet center
-          const px2 = cx + Math.cos(planetAngle) * o;
-          const py2 = cy + Math.sin(planetAngle) * o * eR;
-          const ppx = cx + Math.cos(planetAngle) * o * 0.85;
-          const ppy = cy + Math.sin(planetAngle) * o * 0.85 * eR;
-          // Beam position interpolates toward planet
-          const bx = px2 + (ppx - px2) * ease;
-          const by = py2 + (ppy - py2) * ease;
-          ctx.beginPath(); ctx.moveTo(px2, py2); ctx.lineTo(bx, by);
-          ctx.strokeStyle = p.color + "cc"; ctx.lineWidth = 2; ctx.stroke();
-          // Planet burst glow at end of transfer
-          if (ease > 0.7) {
-            const burstR = (ease - 0.7) / 0.3;
-            const burstGlow = ctx.createRadialGradient(ppx, ppy, 0, ppx, ppy, 40 * burstR);
-            burstGlow.addColorStop(0, p.color + "88");
-            burstGlow.addColorStop(1, "transparent");
-            ctx.fillStyle = burstGlow;
-            ctx.fillRect(ppx - 40, ppy - 40, 80, 80);
-          }
-        }
-
-        // Normal color arc that follows the planet
-        const arcSpread = 0.8;
-        const segments = 40;
-        for (let s = 0; s < segments; s++) {
-          const segAngle = planetAngle - arcSpread / 2 + (s / segments) * arcSpread;
-          const nextAngle = planetAngle - arcSpread / 2 + ((s + 1) / segments) * arcSpread;
-          const distFromCenter = Math.abs((s / segments) - 0.5) * 2;
-          const alpha = (1 - distFromCenter * distFromCenter) * 0.35;
-          const x1 = cx + Math.cos(segAngle) * o;
-          const y1 = cy + Math.sin(segAngle) * o * eR;
-          const x2 = cx + Math.cos(nextAngle) * o;
-          const y2 = cy + Math.sin(nextAngle) * o * eR;
-          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-          ctx.strokeStyle = p.color + Math.round(alpha * 255).toString(16).padStart(2, '0');
-          ctx.lineWidth = 2; ctx.stroke();
-        }
-
-        // Bright spot at planet position
-        const brightX = cx + Math.cos(planetAngle) * o;
-        const brightY = cy + Math.sin(planetAngle) * o * eR;
-        const brightGlow = ctx.createRadialGradient(brightX, brightY, 0, brightX, brightY, 12);
-        brightGlow.addColorStop(0, p.color + "40");
-        brightGlow.addColorStop(1, "transparent");
-        ctx.fillStyle = brightGlow;
-        ctx.fillRect(brightX - 12, brightY - 12, 24, 24);
-      });
-
-      const csz = sunSize * scale;
-      const t = timeRef.current;
-
-      // ─── FIERY SUN ───
-      // Corona / outer fire halo (flickering)
-      for (let f = 0; f < 5; f++) {
-        const flareAngle = t * 0.0003 + f * Math.PI * 0.4;
-        const flareLen = csz * (1.8 + Math.sin(t * 0.002 + f * 2.5) * 0.6);
-        const flareWidth = csz * (0.3 + Math.sin(t * 0.003 + f * 1.7) * 0.15);
-        const fx = cx + Math.cos(flareAngle) * csz * 0.5;
-        const fy = cy + Math.sin(flareAngle) * csz * 0.5;
-        const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, flareLen);
-        fg.addColorStop(0, `rgba(255,200,50,${0.15 + Math.sin(t * 0.004 + f) * 0.08})`);
-        fg.addColorStop(0.5, `rgba(255,120,20,${0.06 + Math.sin(t * 0.003 + f) * 0.03})`);
-        fg.addColorStop(1, "transparent");
-        ctx.fillStyle = fg;
-        ctx.fillRect(fx - flareLen, fy - flareLen, flareLen * 2, flareLen * 2);
-      }
-
-      // Outer glow
-      const sg = ctx.createRadialGradient(cx, cy, csz * 0.5, cx, cy, csz * 3.5);
-      sg.addColorStop(0, "rgba(255,180,50,0.5)");
-      sg.addColorStop(0.3, "rgba(255,120,20,0.15)");
-      sg.addColorStop(0.6, "rgba(255,80,10,0.05)");
-      sg.addColorStop(1, "transparent");
-      ctx.fillStyle = sg; ctx.fillRect(cx - csz * 3.5, cy - csz * 3.5, csz * 7, csz * 7);
-
-      // Sun body - base
-      const sg2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, csz);
-      sg2.addColorStop(0, "#fffde8");
-      sg2.addColorStop(0.25, "#ffe66d");
-      sg2.addColorStop(0.5, "#f5a623");
-      sg2.addColorStop(0.75, "#e8762d");
-      sg2.addColorStop(1, "#c0501a");
-      ctx.beginPath(); ctx.arc(cx, cy, csz, 0, Math.PI * 2); ctx.fillStyle = sg2; ctx.fill();
-
-      // Animated plasma surface (rotating bright spots)
-      ctx.save();
-      ctx.beginPath(); ctx.arc(cx, cy, csz, 0, Math.PI * 2); ctx.clip();
-      for (let s = 0; s < 8; s++) {
-        const spotAngle = t * 0.0006 + s * Math.PI * 0.25;
-        const spotR = csz * (0.15 + Math.sin(t * 0.002 + s * 3) * 0.08);
-        const spotDist = csz * (0.3 + Math.sin(t * 0.001 + s * 1.5) * 0.25);
-        const sx = cx + Math.cos(spotAngle) * spotDist;
-        const sy = cy + Math.sin(spotAngle) * spotDist;
-        const spotG = ctx.createRadialGradient(sx, sy, 0, sx, sy, spotR);
-        spotG.addColorStop(0, `rgba(255,255,220,${0.3 + Math.sin(t * 0.003 + s) * 0.15})`);
-        spotG.addColorStop(0.5, `rgba(255,200,80,${0.1 + Math.sin(t * 0.002 + s) * 0.05})`);
-        spotG.addColorStop(1, "transparent");
-        ctx.fillStyle = spotG;
-        ctx.fillRect(sx - spotR, sy - spotR, spotR * 2, spotR * 2);
-      }
-      ctx.restore();
-
-      // Specular highlight on sun
-      const sunHL = ctx.createRadialGradient(cx - csz * 0.25, cy - csz * 0.25, 0, cx, cy, csz * 0.7);
-      sunHL.addColorStop(0, "rgba(255,255,255,0.2)"); sunHL.addColorStop(1, "transparent");
-      ctx.beginPath(); ctx.arc(cx, cy, csz, 0, Math.PI * 2); ctx.fillStyle = sunHL; ctx.fill();
-
-      // Sun label
-      ctx.fillStyle = "rgba(245,166,35,0.8)"; ctx.font = `${Math.max(9, 11 * scale)}px Georgia`; ctx.textAlign = "center";
-      ctx.fillText("SHUNYA", cx, cy + csz + 18);
-
-      // ─── MOON MERGE ANIMATION ───
-      mergingMoons.current = mergingMoons.current.filter((m) => {
-        m.progress += 0.012;
-        if (m.progress >= 1) return false;
-        const ease = 1 - Math.pow(1 - m.progress, 3); // ease-out cubic
-        const mx = m.startX + (cx - m.startX) * ease;
-        const my = m.startY + (cy - m.startY) * ease;
-        const mSize = (1 - ease) * 3 + 1;
-        const mAlpha = 1 - ease * 0.7;
-        // Trail
-        const trG = ctx.createRadialGradient(mx, my, 0, mx, my, mSize * 4);
-        trG.addColorStop(0, `rgba(255,200,50,${mAlpha * 0.4})`); trG.addColorStop(1, "transparent");
-        ctx.fillStyle = trG; ctx.fillRect(mx - mSize * 4, my - mSize * 4, mSize * 8, mSize * 8);
-        // Moon body
-        ctx.beginPath(); ctx.arc(mx, my, mSize, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${mAlpha})`; ctx.fill();
-        return true;
-      });
-      PLANETS.forEach((p) => {
-        const angle = t * p.speed; const orbit = p.baseOrbit * scale; const size = Math.max(p.baseSize * scale, w < 768 ? 14 : 10);
-        const px = cx + Math.cos(angle) * orbit; const py = cy + Math.sin(angle) * orbit * eR;
-        const pulseSize = size * (1 + Math.sin(t * 0.001 + p.baseOrbit) * 0.06);
-        const glowRadius = pulseSize * (4 + Math.sin(t * 0.0015 + p.baseOrbit) * 1.2);
-
-        const isUnlocked = unlockedPlanetsRef.current.includes(p.id);
-        const isRoulettTarget = rouletteRef.current.spinning && rouletteRef.current.targetPlanetId === p.id;
-
-        // ── LOCKED PLANET — dim but hinting at its true colour ──
-        if (!isUnlocked) {
-          // Orbit ring in planet's colour — faint
-          ctx.beginPath(); ctx.ellipse(cx, cy, orbit, orbit * eR, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = p.color + "18"; ctx.lineWidth = 1; ctx.stroke();
-
-          const lockedPulse = size * (1 + Math.sin(t * 0.0008 + p.baseOrbit) * 0.05);
-
-          // Outer colour glow — very dim, just a whisper of what it could be
-          const outerGlow = ctx.createRadialGradient(px, py, 0, px, py, lockedPulse * 3.5);
-          outerGlow.addColorStop(0, p.color + "22");
-          outerGlow.addColorStop(0.5, p.color + "0a");
-          outerGlow.addColorStop(1, "transparent");
-          ctx.fillStyle = outerGlow;
-          ctx.fillRect(px - lockedPulse*3.5, py - lockedPulse*3.5, lockedPulse*7, lockedPulse*7);
-
-          // Planet body — dark desaturated version of its colour
-          const lockedGrad = ctx.createRadialGradient(px - size*0.25, py - size*0.25, 0, px, py, lockedPulse);
-          lockedGrad.addColorStop(0, p.color + "55");  // faint colour at highlight
-          lockedGrad.addColorStop(0.4, p.color + "28"); // mid
-          lockedGrad.addColorStop(0.8, "rgba(15,12,22,0.85)"); // dark towards edge
-          lockedGrad.addColorStop(1, "rgba(8,6,14,0.9)");
-          ctx.beginPath(); ctx.arc(px, py, lockedPulse, 0, Math.PI * 2);
-          ctx.fillStyle = lockedGrad; ctx.fill();
-
-          // Thin colour rim — just enough to feel alive
-          ctx.beginPath(); ctx.arc(px, py, lockedPulse, 0, Math.PI * 2);
-          ctx.strokeStyle = p.color + "33"; ctx.lineWidth = 1; ctx.stroke();
-
-          // Question mark in planet's colour
-          ctx.fillStyle = p.color + "55";
-          ctx.font = `${Math.max(size*0.7, 8)}px Georgia`;
-          ctx.textAlign = "center";
-          ctx.fillText("?", px, py + size*0.25);
-
-          // Dots below instead of name
-          ctx.fillStyle = p.color + "30";
-          ctx.font = `${Math.max(7, 8 * scale)}px Georgia`;
-          ctx.fillText("· · ·", px, py + size + 16);
-          return;
-        }
-
-const spinSpeed = 0.0008 + p.baseOrbit * 0.0000005;
-        const spinAngle = t * spinSpeed;
-        const hlOffsetX = Math.cos(spinAngle) * size * 0.3;
-        const hlOffsetY = Math.sin(spinAngle) * size * 0.15;
-
-        // ── Outer glow — stronger, double layer ──
-        const gl = ctx.createRadialGradient(px, py, 0, px, py, glowRadius);
-        gl.addColorStop(0, p.glow); gl.addColorStop(0.3, p.glow.replace("0.4", "0.12")); gl.addColorStop(0.6, p.glow.replace("0.4", "0.04")); gl.addColorStop(1, "transparent");
-        ctx.fillStyle = gl; ctx.fillRect(px - glowRadius, py - glowRadius, glowRadius * 2, glowRadius * 2);
-
-        // Second glow layer for depth
-        const gl2 = ctx.createRadialGradient(px, py, 0, px, py, glowRadius * 0.6);
-        gl2.addColorStop(0, p.glow.replace("0.4", "0.25")); gl2.addColorStop(1, "transparent");
-        ctx.fillStyle = gl2; ctx.fillRect(px - glowRadius * 0.6, py - glowRadius * 0.6, glowRadius * 1.2, glowRadius * 1.2);
-
-        // Shadow underneath
-        ctx.beginPath(); ctx.ellipse(px + 2, py + size + 4, size * 0.7, size * 0.15, 0, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fill();
-
-        // ── Planet base body — unique per planet ──
-        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2);
-        const baseGrad = ctx.createRadialGradient(px + hlOffsetX * 0.3, py + hlOffsetY * 0.3, size * 0.1, px, py, pulseSize);
-
-        if (p.id === "aatma") {
-          // Molten copper core — volcanic, burning soul
-          baseGrad.addColorStop(0, "#ffd4a8");
-          baseGrad.addColorStop(0.3, "#e07840");
-          baseGrad.addColorStop(0.7, "#a04520");
-          baseGrad.addColorStop(1, "#4a1a08");
-        } else if (p.id === "seesha") {
-          // Ice mirror — crystalline, reflective, layered blue
-          baseGrad.addColorStop(0, "#e8f8ff");
-          baseGrad.addColorStop(0.3, "#7dd3fc");
-          baseGrad.addColorStop(0.7, "#1e6fa8");
-          baseGrad.addColorStop(1, "#0a2a40");
-        } else if (p.id === "kaal") {
-          // Deep violet — swirling time, cosmic mystery
-          baseGrad.addColorStop(0, "#d4b8ff");
-          baseGrad.addColorStop(0.3, "#a78bfa");
-          baseGrad.addColorStop(0.7, "#6d4aad");
-          baseGrad.addColorStop(1, "#2a1650");
-        } else if (p.id === "dharma") {
-          // Bright pink-magenta — purpose, passion
-          baseGrad.addColorStop(0, "#ffd6f7");
-          baseGrad.addColorStop(0.3, "#f093fb");
-          baseGrad.addColorStop(0.7, "#b050c8");
-          baseGrad.addColorStop(1, "#4a1055");
-        } else if (p.id === "moksha") {
-          // Pure gold core — radiant liberation
-          baseGrad.addColorStop(0, "#fffbe8");
-          baseGrad.addColorStop(0.3, "#ffd700");
-          baseGrad.addColorStop(0.7, "#c8a000");
-          baseGrad.addColorStop(1, "#5a4800");
-        } else if (p.id === "karma") {
-          // Burning red — fire, consequence
-          baseGrad.addColorStop(0, "#ffc8c8");
-          baseGrad.addColorStop(0.3, "#ff6b6b");
-          baseGrad.addColorStop(0.7, "#c82020");
-          baseGrad.addColorStop(1, "#4a0808");
-        } else if (p.id === "prema") {
-          // Rose gold — warm, soft, glowing love
-          baseGrad.addColorStop(0, "#ffe8f0");
-          baseGrad.addColorStop(0.3, "#e8a0bf");
-          baseGrad.addColorStop(0.7, "#b06888");
-          baseGrad.addColorStop(1, "#4a2038");
-        } else if (p.id === "maya") {
-          // Iridescent pink shifting — illusion, shimmer
-          baseGrad.addColorStop(0, "#ffd0e8");
-          baseGrad.addColorStop(0.3, "#fd79a8");
-          baseGrad.addColorStop(0.7, "#c03070");
-          baseGrad.addColorStop(1, "#3a0820");
-        }
-        ctx.fillStyle = baseGrad; ctx.fill();
-
-        // ── Surface texture per planet ──
-        ctx.save();
-        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.clip();
-
-        if (p.id === "aatma") {
-          // Volcanic surface cracks
-          for (let i = 0; i < 3; i++) {
-            const crackAngle = spinAngle + i * 2.1;
-            ctx.beginPath();
-            ctx.moveTo(px + Math.cos(crackAngle) * size * 0.2, py + Math.sin(crackAngle) * size * 0.15);
-            ctx.lineTo(px + Math.cos(crackAngle + 0.5) * size * 0.8, py + Math.sin(crackAngle + 0.3) * size * 0.6);
-            ctx.strokeStyle = "rgba(255,160,60,0.15)"; ctx.lineWidth = 1.5; ctx.stroke();
-          }
-        } else if (p.id === "seesha") {
-          // Mirror facets — geometric reflections
-          for (let i = 0; i < 3; i++) {
-            const fAngle = spinAngle * 0.3 + i * 2.09;
-            ctx.beginPath();
-            ctx.moveTo(px, py);
-            ctx.lineTo(px + Math.cos(fAngle)*size*0.7, py + Math.sin(fAngle)*size*0.5);
-            ctx.lineTo(px + Math.cos(fAngle+0.8)*size*0.6, py + Math.sin(fAngle+0.8)*size*0.45);
-            ctx.closePath();
-            ctx.strokeStyle = "rgba(200,240,255,0.08)"; ctx.lineWidth = 0.8; ctx.stroke();
-          }
-        } else if (p.id === "kaal") {
-          // Time spiral rings
-          ctx.beginPath(); ctx.ellipse(px, py, pulseSize * 0.7, pulseSize * 0.2, spinAngle * 0.2, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(200,180,255,0.1)"; ctx.lineWidth = 1; ctx.stroke();
-          ctx.beginPath(); ctx.ellipse(px, py, pulseSize * 0.5, pulseSize * 0.15, spinAngle * 0.3 + 0.5, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(200,180,255,0.08)"; ctx.lineWidth = 0.8; ctx.stroke();
-        } else if (p.id === "moksha") {
-          // Golden energy corona
-          for (let i = 0; i < 6; i++) {
-            const rAngle = spinAngle * 0.3 + i * Math.PI / 3;
-            const rLen = size * (0.6 + Math.sin(t * 0.003 + i) * 0.2);
-            ctx.beginPath();
-            ctx.moveTo(px, py);
-            ctx.lineTo(px + Math.cos(rAngle) * rLen, py + Math.sin(rAngle) * rLen * 0.7);
-            ctx.strokeStyle = "rgba(255,230,100,0.08)"; ctx.lineWidth = 2; ctx.stroke();
-          }
-        } else if (p.id === "karma") {
-          // Burning streaks
-          for (let i = 0; i < 3; i++) {
-            const sAngle = spinAngle + i * 2.2;
-            ctx.beginPath();
-            ctx.arc(px + Math.cos(sAngle) * size * 0.3, py + Math.sin(sAngle) * size * 0.25, size * 0.3, sAngle, sAngle + 1.2);
-            ctx.strokeStyle = "rgba(255,120,80,0.12)"; ctx.lineWidth = 1.5; ctx.stroke();
-          }
-        } else if (p.id === "prema") {
-          // Soft warm inner glow pulse
-          const premaGlow = ctx.createRadialGradient(px, py, 0, px, py, size * 0.5);
-          premaGlow.addColorStop(0, `rgba(255,200,220,${0.08 + Math.sin(t * 0.002) * 0.04})`);
-          premaGlow.addColorStop(1, "transparent");
-          ctx.fillStyle = premaGlow;
-          ctx.fillRect(px - size * 0.5, py - size * 0.5, size, size);
-        }
-
-        // Terminator line (day/night) — all planets
-        const termX = px + hlOffsetX * 2;
-        const termGrad = ctx.createLinearGradient(termX - size, py, termX + size, py);
-        termGrad.addColorStop(0, "rgba(0,0,0,0.3)");
-        termGrad.addColorStop(0.45, "rgba(0,0,0,0.1)");
-        termGrad.addColorStop(0.55, "transparent");
-        termGrad.addColorStop(1, "transparent");
-        ctx.fillStyle = termGrad;
-        ctx.fillRect(px - pulseSize, py - pulseSize, pulseSize * 2, pulseSize * 2);
-        ctx.restore();
-
-        // ── Specular highlight — brighter, sharper ──
-        const specX = px - hlOffsetX * 0.8;
-        const specY = py - size * 0.25 + hlOffsetY * 0.5;
-        const hl = ctx.createRadialGradient(specX, specY, 0, specX, specY, size * 0.6);
-        hl.addColorStop(0, "rgba(255,255,255,0.55)");
-        hl.addColorStop(0.2, "rgba(255,255,255,0.2)");
-        hl.addColorStop(0.5, "rgba(255,255,255,0.05)");
-        hl.addColorStop(1, "transparent");
-        ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI * 2); ctx.fillStyle = hl; ctx.fill();
-
-        // ── Rim light ──
-        const rim = ctx.createRadialGradient(px, py, pulseSize * 0.82, px, py, pulseSize * 1.1);
-        rim.addColorStop(0, "transparent"); rim.addColorStop(0.6, p.color + "20");
-        rim.addColorStop(0.85, p.color + "12"); rim.addColorStop(1, p.color + "06");
-        ctx.beginPath(); ctx.arc(px, py, pulseSize * 1.1, 0, Math.PI * 2); ctx.fillStyle = rim; ctx.fill();
-
-        // ── KARMA RINGS ──
-        if (p.id === "karma") {
-          const tilt = 0.28;
-          ctx.save(); ctx.translate(px, py);
-          ctx.beginPath(); ctx.ellipse(0, 0, pulseSize*2.6, pulseSize*0.55*Math.cos(tilt), tilt, Math.PI, Math.PI*2);
-          const rb1 = ctx.createLinearGradient(-pulseSize*2.6,0,pulseSize*2.6,0);
-          rb1.addColorStop(0,"rgba(255,80,80,0)"); rb1.addColorStop(0.25,"rgba(255,80,80,0.22)"); rb1.addColorStop(0.5,"rgba(255,110,110,0.35)"); rb1.addColorStop(0.75,"rgba(255,80,80,0.22)"); rb1.addColorStop(1,"rgba(255,80,80,0)");
-          ctx.strokeStyle=rb1; ctx.lineWidth=pulseSize*0.28; ctx.stroke();
-          ctx.beginPath(); ctx.ellipse(0, 0, pulseSize*1.85, pulseSize*0.4*Math.cos(tilt), tilt, Math.PI, Math.PI*2);
-          const rb2 = ctx.createLinearGradient(-pulseSize*1.85,0,pulseSize*1.85,0);
-          rb2.addColorStop(0,"rgba(200,60,60,0)"); rb2.addColorStop(0.3,"rgba(220,70,70,0.28)"); rb2.addColorStop(0.5,"rgba(255,90,90,0.4)"); rb2.addColorStop(0.7,"rgba(220,70,70,0.28)"); rb2.addColorStop(1,"rgba(200,60,60,0)");
-          ctx.strokeStyle=rb2; ctx.lineWidth=pulseSize*0.14; ctx.stroke();
-          ctx.restore();
-          ctx.beginPath(); ctx.arc(px, py, pulseSize, 0, Math.PI*2); ctx.fillStyle=baseGrad; ctx.fill();
-          ctx.save(); ctx.translate(px, py);
-          ctx.beginPath(); ctx.ellipse(0, 0, pulseSize*2.6, pulseSize*0.55*Math.cos(tilt), tilt, 0, Math.PI);
-          ctx.strokeStyle=rb1; ctx.lineWidth=pulseSize*0.28; ctx.stroke();
-          ctx.beginPath(); ctx.ellipse(0, 0, pulseSize*1.85, pulseSize*0.4*Math.cos(tilt), tilt, 0, Math.PI);
-          ctx.strokeStyle=rb2; ctx.lineWidth=pulseSize*0.14; ctx.stroke();
-          ctx.restore();
-        }
-
-        // Planet name
-        ctx.fillStyle = p.color; ctx.font = `${Math.max(8, 10 * scale)}px Georgia`; ctx.textAlign = "center";
-        ctx.globalAlpha = 0.85; ctx.fillText(p.name, px, py + size + 16); ctx.globalAlpha = 1.0;
-
-        const mc = moonCounts[p.id] || 0;
-        for (let i = 0; i < mc; i++) {
-          const ma = t*0.002+(i*Math.PI*2)/Math.max(mc,1); const md = size+10+i*3;
-          const mmx = px+Math.cos(ma)*md; const mmy = py+Math.sin(ma)*md*0.6;
-          const mg = ctx.createRadialGradient(mmx,mmy,0,mmx,mmy,Math.max(3,5*scale));
-          mg.addColorStop(0,"rgba(255,255,255,0.5)"); mg.addColorStop(1,"transparent");
-          ctx.fillStyle=mg; ctx.fillRect(mmx-5*scale,mmy-5*scale,10*scale,10*scale);
-          ctx.beginPath(); ctx.arc(mmx,mmy,Math.max(1.5,2.5*scale),0,Math.PI*2); ctx.fillStyle="rgba(255,255,255,0.8)"; ctx.fill();
-        }
-      });
-
-      // ─── REHESYA — wandering planet, only in "answer" or "answered" states ───
-      if (rehesyaVisibleRef.current) {
-        const isAnswered = rehesyaBlinkRef.current; // "answered" state = gold
-        // Wander freely across the canvas (not on a fixed orbit)
-        const rx = cx + Math.sin(t * 0.00018) * w * 0.26 + Math.cos(t * 0.00009) * w * 0.08;
-        const ry = cy + Math.cos(t * 0.00013) * h * 0.2 + Math.sin(t * 0.00021) * h * 0.06;
-        const rSize = Math.max(13 * scale, 10);
-        const pulse = 1 + Math.sin(t * 0.0018) * 0.08;
-        const rps = rSize * pulse;
-
-        // Gold blink when answered, blue glow when answering
-        const glowR = isAnswered ? "255,215,0" : "56,189,248";
-        const blinkAlpha = isAnswered ? (0.65 + Math.sin(t * 0.006) * 0.35) : 1;
-
-        ctx.globalAlpha = blinkAlpha;
-
-        // Flash ring when answered — gold electric pulse
-        if (isAnswered) {
-          const flashR = rps * (3 + Math.sin(t * 0.006) * 1.5);
-          const flashG = ctx.createRadialGradient(rx, ry, rps, rx, ry, flashR);
-          flashG.addColorStop(0, `rgba(255,215,0,${0.22 * Math.abs(Math.sin(t * 0.006))})`);
-          flashG.addColorStop(1, "transparent");
-          ctx.fillStyle = flashG;
-          ctx.fillRect(rx - flashR, ry - flashR, flashR * 2, flashR * 2);
-        }
-
-        // Outer glow layers
-        for (let g = 3; g >= 1; g--) {
-          const gr = ctx.createRadialGradient(rx, ry, 0, rx, ry, rps * (2.2 + g));
-          gr.addColorStop(0, `rgba(${glowR},${isAnswered ? 0.2 / g : 0.1 / g})`);
-          gr.addColorStop(1, "transparent");
-          ctx.fillStyle = gr;
-          ctx.fillRect(rx - rps * (2.2 + g), ry - rps * (2.2 + g), rps * (4.4 + g * 2), rps * (4.4 + g * 2));
-        }
-
-        // Planet body — blue when answering, gold when answered
-        const rg = ctx.createRadialGradient(rx - rps * 0.28, ry - rps * 0.28, 0, rx, ry, rps);
-        if (isAnswered) {
-          rg.addColorStop(0, "#fffde8"); rg.addColorStop(0.25, "#ffd700");
-          rg.addColorStop(0.6, "#b45309"); rg.addColorStop(1, "#451a03");
-        } else {
-          rg.addColorStop(0, "rgba(255,255,255,0.98)"); rg.addColorStop(0.25, "#bae6fd");
-          rg.addColorStop(0.6, "#7dd3fc"); rg.addColorStop(0.85, "#0284c7"); rg.addColorStop(1, "#0c4a6e");
-        }
-        ctx.beginPath(); ctx.arc(rx, ry, rps, 0, Math.PI * 2);
-        ctx.fillStyle = rg; ctx.fill();
-
-        // Orbiting rings — mystery effect
-        ctx.save(); ctx.translate(rx, ry); ctx.rotate(t * 0.0005);
-        ctx.beginPath(); ctx.ellipse(0, 0, rps * 2.0, rps * 0.55, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${glowR},${0.3 + Math.sin(t * 0.002) * 0.1})`; ctx.lineWidth = 1.5; ctx.stroke();
-        ctx.rotate(0.7);
-        ctx.beginPath(); ctx.ellipse(0, 0, rps * 1.5, rps * 0.38, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${glowR},${0.15 + Math.sin(t * 0.003) * 0.06})`; ctx.lineWidth = 0.8; ctx.stroke();
-        ctx.restore();
-
-        // Specular highlight
-        const rhl = ctx.createRadialGradient(rx - rps * 0.3, ry - rps * 0.3, 0, rx, ry, rps * 0.7);
-        rhl.addColorStop(0, "rgba(255,255,255,0.6)"); rhl.addColorStop(0.5, "rgba(255,255,255,0.1)"); rhl.addColorStop(1, "transparent");
-        ctx.beginPath(); ctx.arc(rx, ry, rps, 0, Math.PI * 2); ctx.fillStyle = rhl; ctx.fill();
-
-        // Label
-        ctx.shadowColor = isAnswered ? "rgba(255,215,0,0.9)" : "rgba(56,189,248,0.6)";
-        ctx.shadowBlur = isAnswered ? 18 : 8;
-        ctx.fillStyle = isAnswered ? "#ffd700" : "#7dd3fc";
-        ctx.font = `${Math.max(9, 11 * scale)}px Georgia`; ctx.textAlign = "center";
-        ctx.globalAlpha = 0.75 + Math.sin(t * 0.002) * 0.2;
-        ctx.fillText("REHESYA", rx, ry + rSize + 18);
-        ctx.shadowBlur = 0; ctx.shadowColor = "transparent"; ctx.globalAlpha = 1;
-
-        rehesyaPosRef.current = { x: rx, y: ry, r: rps + 18 };
-      }
-
-      const mouse = mouseRef.current;
-      shootingStarsRef.current = shootingStarsRef.current.filter((s) => {
-        if (s.caught) return false;
-        const dist = Math.hypot(s.x - mouse.x, s.y - mouse.y);
-        s.slowing = dist < 140;
-
-        if (s.slowing) {
-          // Gravitational pull toward cursor (black hole effect)
-          const pullStrength = Math.max(0, 1 - dist / 140) * 1.5;
-          const angle = Math.atan2(mouse.y - s.y, mouse.x - s.x);
-          s.vx += Math.cos(angle) * pullStrength;
-          s.vy += Math.sin(angle) * pullStrength;
-          // Slow down
-          s.vx *= 0.95;
-          s.vy *= 0.95;
-        }
-
-        s.x += s.vx; s.y += s.vy;
-        s.life -= s.slowing ? 0.001 : 0.008;
-        if (s.life <= 0 || s.x < -50 || s.x > w + 50 || s.y > h + 50) return false;
-
-        // Catch when very close
-        if (dist < 30) { s.caught = true; collectStar(); return false; }
-
-        // Trail
-        const trailLen = s.slowing ? 4 : 8;
-        const tg = ctx.createLinearGradient(s.x - s.vx * trailLen, s.y - s.vy * trailLen, s.x, s.y);
-        tg.addColorStop(0, "transparent"); tg.addColorStop(1, s.slowing ? `rgba(255,200,50,${s.life * 0.7})` : `rgba(255,255,255,${s.life * 0.6})`);
-        ctx.beginPath(); ctx.moveTo(s.x - s.vx * trailLen, s.y - s.vy * trailLen); ctx.lineTo(s.x, s.y);
-        ctx.strokeStyle = tg; ctx.lineWidth = s.size; ctx.stroke();
-
-        // Star head — grows and glows golden when being pulled
-        const headSize = s.slowing ? s.size + 3 + (1 - dist / 140) * 3 : s.size;
-        if (s.slowing) {
-          // Golden glow halo
-          const halo = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, headSize * 3);
-          halo.addColorStop(0, `rgba(255,200,50,${s.life * 0.3})`); halo.addColorStop(1, "transparent");
-          ctx.fillStyle = halo; ctx.fillRect(s.x - headSize * 3, s.y - headSize * 3, headSize * 6, headSize * 6);
-        }
-        ctx.beginPath(); ctx.arc(s.x, s.y, headSize, 0, Math.PI * 2);
-        ctx.fillStyle = s.slowing ? `rgba(255,215,0,${s.life})` : `rgba(255,255,255,${s.life})`; ctx.fill();
-        return true;
-      });
-
-      // ─── Comets ───
-      cometsRef.current = cometsRef.current.filter((c) => {
-        c.x += c.vx;
-        c.y += c.vy;
-
-        // Add tail particles
-        c.tailParticles.push({ x: c.x, y: c.y, life: 1 });
-        if (c.tailParticles.length > 60) c.tailParticles.shift();
-
-        // Remove if off screen
-        if (c.x < -100 || c.x > w + 100) return false;
-
-        // Draw tail
-        for (let tp = 0; tp < c.tailParticles.length; tp++) {
-          const p = c.tailParticles[tp];
-          p.life -= 0.018;
-          if (p.life <= 0) continue;
-          const tSize = c.size * p.life * 0.6;
-          const tGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, tSize * 2);
-          tGrad.addColorStop(0, `rgba(${c.tailColor},${p.life * 0.4})`);
-          tGrad.addColorStop(1, "transparent");
-          ctx.fillStyle = tGrad;
-          ctx.fillRect(p.x - tSize * 2, p.y - tSize * 2, tSize * 4, tSize * 4);
-        }
-
-        // Draw comet head — bright core with glow
-        const headGlow = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.size * 4);
-        headGlow.addColorStop(0, `rgba(${c.tailColor},0.5)`);
-        headGlow.addColorStop(0.5, `rgba(${c.tailColor},0.15)`);
-        headGlow.addColorStop(1, "transparent");
-        ctx.fillStyle = headGlow;
-        ctx.fillRect(c.x - c.size * 4, c.y - c.size * 4, c.size * 8, c.size * 8);
-
-        ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2);
-        const coreGrad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.size);
-        coreGrad.addColorStop(0, "#ffffff");
-        coreGrad.addColorStop(0.4, c.color);
-        coreGrad.addColorStop(1, `rgba(${c.tailColor},0.5)`);
-        ctx.fillStyle = coreGrad; ctx.fill();
-
-        // Draw comet name label
-        ctx.fillStyle = `rgba(${c.tailColor},0.5)`;
-        ctx.font = `${mobile ? 9 : 11}px Georgia`;
-        ctx.textAlign = "center";
-        ctx.fillText(c.name, c.x, c.y - c.size - 8);
-
-        return true;
-      });
-
-      // ─── Black hole gravitational trail ───
-      for (let i = cursorTrail.length - 1; i >= 0; i--) {
-        const p = cursorTrail[i];
-        p.life -= 0.035;
-        if (p.life <= 0) { cursorTrail.splice(i, 1); continue; }
-        const radius = p.size * (2 - p.life * 0.8);
-        // Dark core with purple-orange accretion edge
-        const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius);
-        grd.addColorStop(0, `rgba(0, 0, 0, ${p.life * 0.25})`);
-        grd.addColorStop(0.4, `rgba(80, 20, 120, ${p.life * 0.15})`);
-        grd.addColorStop(0.7, `rgba(147, 51, 234, ${p.life * 0.08})`);
-        grd.addColorStop(1, "transparent");
-        ctx.fillStyle = grd;
-        ctx.fillRect(p.x - radius, p.y - radius, radius * 2, radius * 2);
-      }
-
-      ctx.restore();
-      animFrameRef.current = requestAnimationFrame(render);
-    };
-    render(performance.now());
-
-    return () => { cancelAnimationFrame(animFrameRef.current); clearInterval(shootingInterval); clearInterval(cometInterval); window.removeEventListener("resize", resize); window.removeEventListener("mousemove", handleMouse); window.removeEventListener("touchmove", handleTouchMove); canvas.removeEventListener("click", handleClick); canvas.removeEventListener("touchstart", handleTap); };
-  }, [user, moonCounts, sunSize]);
+    });
+  }, [user]);
+
+  const handle3DRehesyaClick = useCallback(() => {
+    if (pendingPass) setShowRehesyaPanel(true);
+    else if (newAnswers && !hasActiveQuestion) setShowRehesyaAnswers(true);
+    else setShowRehesyaRelease(true);
+  }, [pendingPass, newAnswers, hasActiveQuestion]);
 
   // ─── Screens ───
   if (checkingAuth) return (
@@ -1859,34 +982,20 @@ const spinSpeed = 0.0008 + p.baseOrbit * 0.0000005;
   const hasOverlay = selectedPlanet !== null || showAgePrompt || showDharmaTodos || showSunCore;
 
   return (
-    <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: "#000", fontFamily: "Georgia, serif", cursor: "none" }}>
-      {/* Custom black hole cursor */}
-      {!mobile && (
-        <div id="shunya-cursor" style={{
-          position: "fixed", pointerEvents: "none", zIndex: 9999,
-          width: cursorBlink ? 54 : 46, height: cursorBlink ? 54 : 46, borderRadius: "50%",
-          background: cursorBlink
-            ? "radial-gradient(circle, transparent 0%, transparent 28%, rgba(255,200,50,0.35) 38%, rgba(255,170,30,0.2) 50%, rgba(147,51,234,0.15) 65%, transparent 80%)"
-            : "radial-gradient(circle, transparent 0%, transparent 30%, rgba(200,160,255,0.18) 40%, rgba(147,51,234,0.15) 52%, rgba(100,40,160,0.08) 65%, transparent 80%)",
-          boxShadow: cursorBlink
-            ? "0 0 15px rgba(255,215,0,0.5), 0 0 35px rgba(255,180,50,0.25), 0 0 60px rgba(147,51,234,0.15), inset 0 0 15px rgba(255,200,50,0.15)"
-            : "0 0 12px rgba(147,51,234,0.25), 0 0 30px rgba(100,40,160,0.12), 0 0 50px rgba(80,20,120,0.08), inset 0 0 12px rgba(100,60,180,0.06)",
-          border: cursorBlink ? "2px solid rgba(255,215,0,0.55)" : "1.5px solid rgba(200,180,240,0.2)",
-          transform: "translate(-50%, -50%)",
-          left: 0, top: 0,
-          willChange: "transform, left, top",
-          transition: "width 0.2s ease, height 0.2s ease, box-shadow 0.25s ease, border 0.2s ease, background 0.25s ease",
-        }}>
-          {/* Inner accretion ring */}
-          <div style={{
-            position: "absolute", inset: "20%", borderRadius: "50%",
-            border: cursorBlink ? "1px solid rgba(255,200,50,0.4)" : "1px solid rgba(180,150,230,0.15)",
-            transition: "border 0.2s ease",
-          }} />
-        </div>
-      )}
-      {/* Canvas — always runs, gets blurred when overlay is open */}
-      <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, transition: "filter 0.7s cubic-bezier(0.16, 1, 0.3, 1)", filter: hasOverlay ? "blur(10px) brightness(0.35)" : "none" }} />
+    <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: "#000", fontFamily: "Georgia, serif" }}>
+      {/* 3D Solar System — always runs, gets blurred when overlay is open */}
+      <div style={{ position: "absolute", inset: 0, transition: "filter 0.7s cubic-bezier(0.16, 1, 0.3, 1)", filter: hasOverlay ? "blur(10px) brightness(0.35)" : "none" }}>
+        {user && <SolarSystem3D
+          planets={PLANETS}
+          moonCounts={moonCounts}
+          sunSize={sunSize}
+          unlockedPlanets={unlockedPlanets}
+          rehesyaState={rehesyaState}
+          onPlanetClick={handle3DPlanetClick}
+          onSunClick={handle3DSunClick}
+          onRehesyaClick={handle3DRehesyaClick}
+        />}
+      </div>
 
       {/* Top bar — Desktop */}
       {!mobile && !hasOverlay && (

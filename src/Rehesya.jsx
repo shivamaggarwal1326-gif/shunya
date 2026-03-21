@@ -93,7 +93,7 @@ export function useRehesyaState(user) {
         .is("skipped", null)
         .order("created_at", { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const pass = passData ? {
         id: passData.id,
@@ -131,18 +131,24 @@ export function useRehesyaState(user) {
           question: myChains.find(c => c.id === p.chain_id)?.question,
         }));
 
-      const stillTraveling = (allPasses || [])
-        .some(p => !p.answered_at && !p.skipped);
+      const hasAnswers = answers.length > 0;
+      // stillTraveling: chain exists but no real answers yet.
+      // Also true when no other users exist (no passes inserted yet) —
+      // the chain itself is proof the question was released.
+      const stillTraveling = !hasAnswers && myChains.length > 0 && (
+        (allPasses || []).some(p => !p.answered_at && !p.skipped) ||
+        (allPasses || []).length === 0
+      );
 
       setMyAnswers(answers);
 
       // Determine state — priority order
-      if (answers.length > 0) {
+      if (hasAnswers) {
         setState("answered"); // Universe has answered — highest priority
       } else if (pass) {
-        setState("answer");   // A stranger's question is here
+        setState("answer");   // A stranger's question is here for us to answer
       } else if (stillTraveling) {
-        setState("traveling"); // My question is still out there
+        setState("traveling"); // My question is out there, no answer yet
       } else {
         setState("idle");
       }
@@ -150,8 +156,9 @@ export function useRehesyaState(user) {
     } catch (err) {
       console.error("Rehesya state error:", err);
       setState("idle");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return { state, pendingPass, myAnswers, loading, refresh };
@@ -177,7 +184,7 @@ export function useRehesyaActive(user) {
 // ─────────────────────────────────────────────────────────────────────
 async function passToNextUser(chainId, currentUserId) {
   const { data: chain } = await supabase
-    .from("rehesya_chains").select("asker_id").eq("id", chainId).single();
+    .from("rehesya_chains").select("asker_id").eq("id", chainId).maybeSingle();
 
   const { data: recentPasses } = await supabase
     .from("rehesya_passes").select("holder_id")
@@ -199,7 +206,7 @@ async function passToNextUser(chainId, currentUserId) {
 
   const { data: lastPass } = await supabase
     .from("rehesya_passes").select("pass_order")
-    .eq("chain_id", chainId).order("pass_order", { ascending: false }).limit(1).single();
+    .eq("chain_id", chainId).order("pass_order", { ascending: false }).limit(1).maybeSingle();
 
   await supabase.from("rehesya_passes").insert({
     chain_id: chainId,
@@ -240,8 +247,10 @@ export function RehesyaRelease({ user, onClose, onReleased, mobile }) {
           pass_order: 0, created_at: new Date().toISOString(),
         });
       }
+      // Show the "released" animation immediately
       setSent(true);
-      setTimeout(() => { onReleased?.(); onClose?.(); }, 2800);
+      // Notify parent immediately so planet starts fading NOW
+      onReleased?.();
     } catch (err) {
       console.error("Release failed:", err);
       setSending(false);

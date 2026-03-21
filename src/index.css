@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  margin: 0; overflow: hidden;
+  touch-action: none; -webkit-overflow-scrolling: touch;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  background: #020108;
+}
+canvas { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+button { font-family: 'Cormorant Garamond', Georgia, serif; }
+h1, h2, h3, h4, p, span { font-family: 'Cormorant Garamond', Georgia, serif; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(245,166,35,0.28); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::selection { background: rgba(245,166,35,0.32); color: #fff8e8; }
+
+/* ═══════════════════════════════════════════════════════
+   WARM VISIBILITY SYSTEM
+   Every cold white rgba() gets replaced with:
+   - Warm amber-parchment hue
+   - BOOSTED opacity so text is actually readable
+   
+   Minimum opacity by role:
+     Primary text:     0.90
+     Secondary text:   0.72
+     Nav / labels:     0.65  ← "for your 3 am thoughts", "EXIT"
+     Hints / meta:     0.52  ← "Unknown", "Your Universe"
+     Whisper:          0.42  ← barely-there decorative text
+═══════════════════════════════════════════════════════ */
+
+/* Inputs */
+textarea { color: rgba(255,248,222,0.92) !important; caret-color: #f5a623 !important; }
+textarea::placeholder { color: rgba(200,186,148,0.40) !important; }
+input::placeholder    { color: rgba(200,186,148,0.40) !important; }
+
+/* ── Tier 1: 0.82–0.92 → warm parchment, stays bright ── */
+[style*="rgba(255,255,255,0.92"],
+[style*="rgba(255,255,255,0.90"],
+[style*="rgba(255,255,255,0.88"],
+[style*="rgba(255,255,255,0.85"],
+[style*="rgba(255,255,255,0.82"] {
+  color: rgba(255,248,228,0.92) !important;
+}
+
+/* ── Tier 2: 0.70–0.80 → warm gold-white ── */
+[style*="rgba(255,255,255,0.80"],
+[style*="rgba(255,255,255,0.78"],
+[style*="rgba(255,255,255,0.75"],
+[style*="rgba(255,255,255,0.72"],
+[style*="rgba(255,255,255,0.70"] {
+  color: rgba(255,240,205,0.82) !important;
+}
+
+/* ── Tier 3: 0.50–0.65 → amber starlight ── */
+[style*="rgba(255,255,255,0.65"],
+[style*="rgba(255,255,255,0.60"],
+[style*="rgba(255,255,255,0.55"],
+[style*="rgba(255,255,255,0.50"] {
+  color: rgba(245,230,190,0.72) !important;
+}
+
+/* ── Tier 4: 0.35–0.45 → BOOSTED to 0.70 (was invisible) ── */
+/* "How it works", "Planets", button labels, descriptions */
+[style*="rgba(255,255,255,0.45"],
+[style*="rgba(255,255,255,0.42"],
+[style*="rgba(255,255,255,0.40"],
+[style*="rgba(255,255,255,0.38"],
+[style*="rgba(255,255,255,0.35"] {
+  color: rgba(238,222,178,0.72) !important;
+}
+
+/* ── Tier 5: 0.25–0.32 → BOOSTED to 0.65 ── */
+/* "for your 3 am thoughts", secondary nav, modal subtitles */
+[style*="rgba(255,255,255,0.32"],
+[style*="rgba(255,255,255,0.30"],
+[style*="rgba(255,255,255,0.28"],
+[style*="rgba(255,255,255,0.25"] {
+  color: rgba(232,215,170,0.67) !important;
+}
+
+/* ── Tier 6: 0.18–0.22 → BOOSTED to 0.58 ── */
+/* "Unknown", "EXIT", "Your Universe", word counts */
+[style*="rgba(255,255,255,0.22"],
+[style*="rgba(255,255,255,0.20"],
+[style*="rgba(255,255,255,0.18"] {
+  color: rgba(225,208,165,0.60) !important;
+}
+
+/* ── Tier 7: 0.10–0.15 → BOOSTED to 0.48 ── */
+[style*="rgba(255,255,255,0.15"],
+[style*="rgba(255,255,255,0.12"],
+[style*="rgba(255,255,255,0.10"] {
+  color: rgba(212,195,155,0.50) !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SPECIFIC COMPONENT OVERRIDES
+   (for things that need more than a color tier change)
+═══════════════════════════════════════════════════════ */
+
+/* TOP BAR ── "for your 3 am thoughts" */
+span[style*="italic"][style*="letterSpacing"] {
+  color: rgba(245,222,158,0.72) !important;
+  text-shadow: 0 0 22px rgba(245,166,35,0.20) !important;
+}
+
+/* TOP BAR ── Anonymous name ("Distant Aurora" etc) */
+span[style*="fontStyle"][style*="padding"][style*="Georgia"] {
+  color: rgba(248,228,170,0.80) !important;
+  text-shadow: 0 0 18px rgba(245,166,35,0.18) !important;
+}
+
+/* TOP BAR ── EXIT & secondary nav button text */
+button[style*="transparent"][style*="letterSpacing"] {
+  color: rgba(230,215,168,0.68) !important;
+}
+
+/* PLANET NAV ── "YOUR UNIVERSE" header */
+p[style*="uppercase"] {
+  color: rgba(245,210,128,0.65) !important;
+}
+
+/* PLANET NAV ── "Unknown" locked names */
+span[style*="italic"][style*="letterSpacing: 2"],
+span[style*="italic"][style*="letterSpacing:2"] {
+  color: rgba(185,170,218,0.62) !important;
+}
+
+/* PLANET NAV ── unlocked planet names */
+span[style*="letterSpacing: 2"][style*="Georgia,serif"],
+span[style*="letterSpacing:2"][style*="Georgia,serif"] {
+  color: rgba(248,238,205,0.82) !important;
+}
+
+/* PLANET NAV ── "X / 8 discovered" */
+span[style*="discovered"] {
+  color: rgba(222,205,158,0.58) !important;
+}
+
+/* MODALS ── headings */
+h2[style*="fontWeight: 300"],
+h2[style*="fontWeight:300"] {
+  text-shadow: 0 0 32px currentColor !important;
+  filter: brightness(1.08) !important;
+}
+
+/* MODALS ── body paragraph text */
+p[style*="lineHeight: 1.9"],  p[style*="lineHeight:1.9"],
+p[style*="lineHeight: 1.85"], p[style*="lineHeight:1.85"],
+p[style*="lineHeight: 1.8"],  p[style*="lineHeight:1.8"],
+p[style*="lineHeight: 2.2"],  p[style*="lineHeight:2.2"] {
+  color: rgba(232,218,182,0.75) !important;
+}
+
+/* QUOTE MODAL ── quote text */
+p[style*="fontStyle: \"italic\""][style*="fontWeight: 300"],
+p[style*='fontStyle:"italic"'][style*="fontWeight:300"] {
+  color: rgba(255,245,212,0.90) !important;
+  text-shadow: 0 0 30px rgba(255,225,140,0.10) !important;
+}
+
+/* QUOTE MODAL ── "TODAY'S REFLECTION" label */
+p[style*="letterSpacing:6"],
+p[style*="letterSpacing: 6"] {
+  color: rgba(245,198,108,0.58) !important;
+}
+
+/* STREAK ── subtitle */
+p[style*="universe grows"] {
+  color: rgba(218,202,162,0.62) !important;
+}
+
+/* JOURNAL ── prompt / poem italic text */
+p[style*="fontStyle: \"italic\""] {
+  color: rgba(240,228,192,0.78) !important;
+  text-shadow: 0 0 24px rgba(255,220,150,0.08) !important;
+}
+
+/* HOW IT WORKS ── step bodies */
+p[style*="lineHeight: 1.85"] {
+  color: rgba(220,208,172,0.70) !important;
+}
+
+/* PLANET OVERLAY ── description text */
+p[style*="howItLives"],
+p[style*="fontStyle: \"italic\""][style*="maxWidth"] {
+  color: rgba(228,215,180,0.75) !important;
+}
+
+/* ENTRIES ── past journal entry text */
+p[style*="lineHeight: 1.8"][style*="marginBottom: 8"],
+p[style*="lineHeight:1.8"][style*="marginBottom:8"] {
+  color: rgba(248,238,205,0.78) !important;
+}

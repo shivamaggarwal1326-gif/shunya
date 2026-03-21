@@ -8,10 +8,10 @@ const PLANET_PSYCHOLOGY = {
     avoid: "generic self-help language. Never ask 'what are your goals?'",
     depth: "Ask about BEING, not DOING. But also the warrior soul that BURNS.",
   },
-  pranaa: {
-    tone: "warm, awakening — like sunlight hitting skin. Visceral, embodied, sensory. Make them FEEL something.",
-    avoid: "abstract philosophy. Keep it in the body.",
-    depth: "Ask about physical sensation, aliveness, what makes them feel electric.",
+  seesha: {
+    tone: "sharp, reflective — like looking into a mirror you can't look away from. Ask about identity, versions, masks, honesty.",
+    avoid: "generic self-help. Never ask 'what do you want to be?'",
+    depth: "Ask about which version of them is speaking. The fracture between who they are and who they show.",
   },
   kaal: {
     tone: "wise, unhurried — like time itself speaking. Questions about past as knife, suffering as fuel.",
